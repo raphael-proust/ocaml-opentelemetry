@@ -31,7 +31,7 @@ module Make
   val consumer :
     ?override_n_workers:int ->
     ticker_task:float option ->
-    config:Client_config.t ->
+    config:Http_config.t ->
     unit ->
     Consumer.any_signal_l_builder
   (** Make a consumer builder, ie. a builder function that will take a bounded
@@ -42,18 +42,17 @@ module Make
         seconds, or [None] to not start such a task at all. *)
 end = struct
   module Sender :
-    Generic_consumer.SENDER
-      with module IO = IO
-       and type config = Client_config.t = struct
+    Generic_consumer.SENDER with module IO = IO and type config = Http_config.t =
+  struct
     module IO = IO
 
+    type config = Http_config.t
+
     type t = {
-      config: Client_config.t;
+      config: config;
       encoder: Pbrt.Encoder.t;
       http: Httpc.t;
     }
-
-    type config = Client_config.t
 
     let create ~config () : t =
       { config; http = Httpc.create (); encoder = Pbrt.Encoder.create () }
@@ -77,7 +76,7 @@ end = struct
 
   let default_n_workers = 50
 
-  let consumer ?override_n_workers ~ticker_task ~(config : Client_config.t) () :
+  let consumer ?override_n_workers ~ticker_task ~(config : Http_config.t) () :
       Consumer.any_signal_l_builder =
     let n_workers =
       min 2

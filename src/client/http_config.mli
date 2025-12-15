@@ -1,9 +1,12 @@
-(** Constructing and managing the configuration needed in common by all clients
-*)
+(** Constructing and managing the configuration common to many (most?)
+    HTTP-based clients.
+
+    This is extended and reused by concrete client implementations that exports
+    signals over HTTP, depending on their needs. *)
 
 type t = private {
-  debug: bool;
-  url_traces: string;  (** Url to send traces *)
+  debug: bool;  (** Debug the client itself? *)
+  url_traces: string;  (** Url to send traces/spans *)
   url_metrics: string;  (** Url to send metrics*)
   url_logs: string;  (** Url to send logs *)
   headers: (string * string) list;
@@ -33,7 +36,9 @@ type t = private {
           Default [false].
           @since 0.7 *)
   http_concurrency_level: int option;
-      (** How many HTTP requests can be done simultaneously (at most)?
+      (** How many HTTP requests can be done simultaneously (at most)? This can
+          be used to represent the size of a pool of workers where each worker
+          gets a batch to send, send it, and repeats.
           @since NEXT_RELEASE *)
 }
 (** Configuration.
