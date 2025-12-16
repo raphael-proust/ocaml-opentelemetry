@@ -1,5 +1,5 @@
 open Alcotest
-module Config = Opentelemetry_client.Client_config
+module Config = Opentelemetry_client.Http_config
 
 let test_config_printing () =
   let module Env = Config.Env () in
