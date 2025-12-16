@@ -21,21 +21,6 @@
 module OTEL := Opentelemetry_core
 module Otrace := Trace_core
 
-(** Conversions between [Opentelemetry] and [Trace_core] types *)
-module Conv : sig
-  val trace_id_of_otel : OTEL.Trace_id.t -> string
-
-  val trace_id_to_otel : string -> OTEL.Trace_id.t
-
-  val span_id_of_otel : OTEL.Span_id.t -> int64
-
-  val span_id_to_otel : int64 -> OTEL.Span_id.t
-
-  val ctx_to_otel : Otrace.explicit_span_ctx -> OTEL.Span_ctx.t
-
-  val ctx_of_otel : OTEL.Span_ctx.t -> Otrace.explicit_span_ctx
-end
-
 (** The extension events for {!Trace_core}. *)
 module Extensions : sig
   type Otrace.extension_event +=
