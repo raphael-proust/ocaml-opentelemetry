@@ -1,9 +1,24 @@
+open Opentelemetry_atomic
 open Common_
-module Conv = Conv
-open Conv
 
 let on_internal_error =
   ref (fun msg -> Printf.eprintf "error in Opentelemetry_trace: %s\n%!" msg)
+
+open struct
+  module Opt_syntax = struct
+    let[@inline] ( let+ ) o f =
+      match o with
+      | None -> None
+      | Some x -> Some (f x)
+
+    let ( >|= ) = ( let+ )
+
+    let[@inline] ( <?> ) a b =
+      match a, b with
+      | Some _, _ -> a
+      | None, _ -> b
+  end
+end
 
 module Extensions = struct
   type Otrace.extension_event +=
@@ -25,53 +40,76 @@ module Internal = struct
   (* use the fast, thread safe span table that relies on picos. *)
   module Active_span_tbl = Trace_subscriber.Span_tbl
 
-  type state = { tbl: span_begin Active_span_tbl.t } [@@unboxed]
+  type state = {
+    tbl: span_begin Active_span_tbl.t;
+    span_gen: int Atomic.t;
+  }
 
-  let create_state () : state = { tbl = Active_span_tbl.create () }
+  let create_state () : state =
+    { tbl = Active_span_tbl.create (); span_gen = Atomic.make 0 }
 
   (* sanity check: otrace meta-map must be the same as hmap *)
   let () = ignore (fun (k : _ Hmap.key) : _ Otrace.Meta_map.key -> k)
 
+  let[@inline] get_span_ (self : state) (span : Otrace.span) :
+      OTEL.Span.t option =
+    match Active_span_tbl.find_exn self.tbl span with
+    | exception Not_found -> None
+    | { span } -> Some span
+
   (** key to access a OTEL span (the current span) from an
-      [Otrace.explicit_span] *)
-  let k_explicit_span : OTEL.Span.t Otrace.Meta_map.key =
-    Otrace.Meta_map.Key.create ()
+      [Otrace.explicit_span]. We can reuse the context key because we know that
+      [Otrace.Meta_map == Hmap]. *)
+  let k_span_otrace : OTEL.Span.t Otrace.Meta_map.key = OTEL.Span.k_context
 
-  let otrace_of_otel (id : OTEL.Span_id.t) : int64 =
-    let bs = OTEL.Span_id.to_bytes id in
-    (* lucky that it coincides! *)
-    assert (Bytes.length bs = 8);
-    Bytes.get_int64_le bs 0
+  let[@inline] get_span_explicit_ (span : Otrace.explicit_span) :
+      OTEL.Span.t option =
+    Otrace.Meta_map.find k_span_otrace span.meta
 
-  let enter_span' (self : state)
+  let enter_span_ (self : state)
       ?(explicit_parent : Otrace.explicit_span_ctx option) ~__FUNCTION__
-      ~__FILE__ ~__LINE__ ~data name : Otrace.span * span_begin =
+      ~__FILE__ ~__LINE__ ~data ~(otrace_span : Otrace.span) name : span_begin =
     let open OTEL in
     (* we create a random span ID here, it's not related in any way to
        the [Otrace.span] which is sequential. The [Otrace.span] has strong
        guarantees of uniqueness and thus we {i can} use it as an index
-       in [Span_tbl], whereas an 8B OTEL span ID might be prone to collisions
-       over time. *)
+       in [Span_tbl], whereas an 8 bytes OTEL span ID might be prone to
+       collisions over time. *)
     let otel_id = Span_id.create () in
-    let otrace_id = otrace_of_otel otel_id in
 
-    let trace_id, parent_id =
+    (* get data from parent *)
+    let trace_id_from_parent, parent_id_from_parent =
+      let open Opt_syntax in
       match explicit_parent with
       | Some p ->
-        let trace_id = p.trace_id |> Conv.trace_id_to_otel in
-        let parent_id =
-          try
-            let sb = Active_span_tbl.find_exn self.tbl p.span in
-            Some (OTEL.Span.id sb.span)
-          with Not_found -> None
+        let trace_id = Otrace.Meta_map.find k_trace_id p.meta in
+        let span_id =
+          Otrace.Meta_map.find k_span_otrace p.meta >|= OTEL.Span.id
         in
-        trace_id, parent_id
-      | None ->
-        (* look in ambient context *)
+        let span_ctx = Otrace.Meta_map.find k_span_ctx p.meta in
+        ( trace_id <?> (span_ctx >|= OTEL.Span_ctx.trace_id),
+          span_id <?> (span_ctx >|= OTEL.Span_ctx.parent_id) )
+      | None -> None, None
+    in
+
+    (* get data from implicit context *)
+    let trace_id_from_ambient, parent_id_from_ambient =
+      if Option.is_none trace_id_from_parent then
+        let open Opt_syntax in
         let implicit_parent = OTEL.Ambient_span.get () in
-        (match implicit_parent with
-        | Some p -> Span.trace_id p, Some (Span.id p)
-        | None -> Trace_id.create (), None)
+        implicit_parent >|= OTEL.Span.trace_id, implicit_parent >|= OTEL.Span.id
+      else
+        None, None
+    in
+
+    let trace_id =
+      match trace_id_from_parent, trace_id_from_ambient with
+      | Some t, _ | None, Some t -> t
+      | None, None -> Trace_id.create ()
+    in
+
+    let parent_id =
+      Opt_syntax.(parent_id_from_parent <?> parent_id_from_ambient)
     in
 
     let attrs =
@@ -103,8 +141,8 @@ module Internal = struct
         ]
     | _ -> ());
 
-    Active_span_tbl.add self.tbl otrace_id sb;
-    otrace_id, sb
+    Active_span_tbl.add self.tbl otrace_span sb;
+    sb
 
   let exit_span_ { span } : OTEL.Span.t =
     let open OTEL in
@@ -125,16 +163,6 @@ module Internal = struct
     | otel_span_begin ->
       Active_span_tbl.remove self.tbl otrace_id;
       Some (exit_span_ otel_span_begin)
-
-  let[@inline] get_span_ (self : state) (span : Otrace.span) :
-      OTEL.Span.t option =
-    match Active_span_tbl.find_exn self.tbl span with
-    | exception Not_found -> None
-    | { span } -> Some span
-
-  let[@inline] get_span_explicit_ (span : Otrace.explicit_span) :
-      OTEL.Span.t option =
-    Otrace.Meta_map.find k_explicit_span span.meta
 end
 
 module type COLLECTOR_ARG = sig
@@ -148,37 +176,55 @@ module Make_collector (A : COLLECTOR_ARG) = struct
 
   let state = create_state ()
 
+  (* NOTE: perf: it would be interesting to keep the "current (OTEL) span" in
+    local storage/ambient-context, to accelerate most span-modifying
+    operations. They'd first look in local storage, and if the span isn't the
+    expected one, then look in the main span tbl. *)
+
   let with_span ~__FUNCTION__ ~__FILE__ ~__LINE__ ~data name cb =
-    let (otrace_id, sb) : Otrace.span * span_begin =
-      enter_span' state ~__FUNCTION__ ~__FILE__ ~__LINE__ ~data name
+    let otrace_span : Otrace.span =
+      Int64.of_int (Atomic.fetch_and_add state.span_gen 1)
+    in
+
+    let sb : span_begin =
+      enter_span_ state ~__FUNCTION__ ~__FILE__ ~__LINE__ ~data name
+        ~otrace_span
     in
 
     match
       let@ () = OTEL.Ambient_span.with_ambient sb.span in
-      cb otrace_id
+      cb otrace_span
     with
     | res ->
-      let otel_span = exit_span' state otrace_id sb in
+      let otel_span = exit_span' state otrace_span sb in
       OTEL.Exporter.send_trace exporter [ otel_span ];
       res
     | exception e ->
       let bt = Printexc.get_raw_backtrace () in
 
+      let otrace_span : Otrace.span =
+        Int64.of_int (Atomic.fetch_and_add state.span_gen 1)
+      in
       OTEL.Span.record_exception sb.span e bt;
-      let otel_span = exit_span' state otrace_id sb in
+      let otel_span = exit_span' state otrace_span sb in
       OTEL.Exporter.send_trace exporter [ otel_span ];
 
       Printexc.raise_with_backtrace e bt
 
   let enter_span ~__FUNCTION__ ~__FILE__ ~__LINE__ ~data name : Trace_core.span
       =
-    let otrace_id, _sb =
-      enter_span' state ~__FUNCTION__ ~__FILE__ ~__LINE__ ~data name
+    let otrace_span : Otrace.span =
+      Int64.of_int (Atomic.fetch_and_add state.span_gen 1)
     in
+    let _sb =
+      enter_span_ state ~__FUNCTION__ ~__FILE__ ~__LINE__ ~data ~otrace_span
+        name
+    in
+
     (* NOTE: we cannot enter ambient scope in a disjoint way
          with the exit, because we only have [Ambient_context.with_binding],
          no [set_binding]. This is what {!with_parent_span} is for! *)
-    otrace_id
+    otrace_span
 
   let exit_span otrace_id =
     match exit_span_from_id state otrace_id with
@@ -187,20 +233,24 @@ module Make_collector (A : COLLECTOR_ARG) = struct
 
   let enter_manual_span ~(parent : Otrace.explicit_span_ctx option) ~flavor:_
       ~__FUNCTION__ ~__FILE__ ~__LINE__ ~data name : Otrace.explicit_span =
-    let otrace_id, sb =
+    let otrace_span : Otrace.span =
+      Int64.of_int (Atomic.fetch_and_add state.span_gen 1)
+    in
+    let sb =
       match parent with
-      | None -> enter_span' state ~__FUNCTION__ ~__FILE__ ~__LINE__ ~data name
+      | None ->
+        enter_span_ state ~__FUNCTION__ ~__FILE__ ~__LINE__ ~data ~otrace_span
+          name
       | Some parent ->
-        enter_span' state ~explicit_parent:parent ~__FUNCTION__ ~__FILE__
-          ~__LINE__ ~data name
+        enter_span_ state ~explicit_parent:parent ~__FUNCTION__ ~__FILE__
+          ~__LINE__ ~data ~otrace_span name
     in
 
-    Active_span_tbl.add state.tbl otrace_id sb;
+    Active_span_tbl.add state.tbl otrace_span sb;
 
     {
-      Otrace.span = otrace_id;
-      trace_id = trace_id_of_otel (OTEL.Span.trace_id sb.span);
-      meta = Otrace.Meta_map.(empty |> add k_explicit_span sb.span);
+      Otrace.span = otrace_span;
+      meta = Otrace.Meta_map.(empty |> add k_span_otrace sb.span);
     }
 
   let exit_manual_span { Otrace.span = otrace_id; _ } =
@@ -223,16 +273,33 @@ module Make_collector (A : COLLECTOR_ARG) = struct
       !on_internal_error (spf "manual span does not a contain an OTEL scope")
     | Some span -> OTEL.Span.add_attrs span data
 
-  let message ?span ~data:_ msg : unit =
-    (* gather information from context *)
-    let old_span = OTEL.Ambient_span.get () in
-    let trace_id = Option.map OTEL.Span.trace_id old_span in
-
-    let span_id =
+  let message ?(span : Otrace.span option) ~data:_ msg : unit =
+    let trace_id_from_parent, span_id_from_parent =
+      let open Opt_syntax in
       match span with
-      | Some id -> Some (span_id_to_otel id)
-      | None -> Option.map OTEL.Span.id old_span
+      | Some p ->
+        let sp = get_span_ state p in
+        ( (let+ sp = sp in
+           OTEL.Span.trace_id sp),
+          let+ sp = sp in
+          OTEL.Span.id sp )
+      | None -> None, None
     in
+
+    (* get data from implicit context *)
+    let trace_id_from_ambient, span_id_from_ambient =
+      if Option.is_none trace_id_from_parent then
+        let open Opt_syntax in
+        let implicit_parent = OTEL.Ambient_span.get () in
+        implicit_parent >|= OTEL.Span.trace_id, implicit_parent >|= OTEL.Span.id
+      else
+        None, None
+    in
+
+    let trace_id =
+      Opt_syntax.(trace_id_from_parent <?> trace_id_from_ambient)
+    in
+    let span_id = Opt_syntax.(span_id_from_parent <?> span_id_from_ambient) in
 
     let log = OTEL.Log_record.make_str ?trace_id ?span_id msg in
     OTEL.Exporter.send_logs exporter [ log ]
