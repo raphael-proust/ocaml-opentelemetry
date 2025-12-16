@@ -23,7 +23,7 @@ let run () =
     let module C = (val mk_client ~scope) in
     (* Using the same default server O  *)
     let* _res, body =
-      C.get (Uri.of_string Opentelemetry_client.Client_config.default_url)
+      C.get (Uri.of_string Opentelemetry_client.Http_config.default_url)
     in
     let* () = Cohttp_lwt.Body.drain_body body in
     go ()
