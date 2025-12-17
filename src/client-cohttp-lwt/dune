@@ -6,12 +6,15 @@
   (pps lwt_ppx))
  (libraries
   (re_export opentelemetry)
+  (re_export opentelemetry-lwt)
   (re_export opentelemetry-client)
-  opentelemetry-client.lwt
+  (re_export opentelemetry-client.lwt)
   (re_export lwt)
+  (re_export lwt.unix)
   (re_export cohttp-lwt)
   (re_export cohttp-lwt-unix)
   (re_export cohttp)
+  (re_export unix)
   uri
   threads
   pbrt

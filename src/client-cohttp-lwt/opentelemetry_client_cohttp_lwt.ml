@@ -120,8 +120,8 @@ let create_exporter ?(config = Config.make ()) () =
 let create_backend = create_exporter
 
 let setup_ ?config () : unit =
-  let backend = create_backend ?config () in
-  Main_exporter.set backend;
+  let exp = create_exporter ?config () in
+  Main_exporter.set exp;
   ()
 
 let setup ?config ?(enable = true) () = if enable then setup_ ?config ()

@@ -6,6 +6,7 @@
   opentelemetry.atomic
   (re_export opentelemetry-client)
   (re_export curl)
+  unix
   pbrt
   threads
   mtime

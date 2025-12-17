@@ -4,4 +4,6 @@
  (synopsis "Lwt frontend for opentelemetry")
  (preprocess
   (pps lwt_ppx))
- (libraries lwt opentelemetry))
+ (libraries
+  (re_export lwt)
+  (re_export opentelemetry)))

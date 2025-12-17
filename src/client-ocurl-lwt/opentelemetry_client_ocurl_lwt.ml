@@ -91,7 +91,7 @@ let create_exporter ?(config = Config.make ()) () =
 let create_backend = create_exporter
 
 let setup_ ?config () : Exporter.t =
-  let exp = create_backend ?config () in
+  let exp = create_exporter ?config () in
   Main_exporter.set exp;
   exp
 
@@ -114,11 +114,11 @@ let with_setup ?(after_shutdown = ignore) ?(config = Config.make ())
     Lwt.catch
       (fun () ->
         let* res = f () in
-        let+ () = remove_backend () in
+        let+ () = remove_exporter () in
         after_shutdown exp;
         res)
       (fun exn ->
-        let* () = remove_backend () in
+        let* () = remove_exporter () in
         after_shutdown exp;
         Lwt.reraise exn)
   else
