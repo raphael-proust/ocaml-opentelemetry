@@ -28,7 +28,7 @@ let run_job () =
   while OT.Aswitch.is_on active && !cnt < !n do
     let@ _scope =
       Atomic.incr num_tr;
-      OT.Tracer.with_ tracer ~kind:OT.Span.Span_kind_producer "loop.outer"
+      OT.Tracer.with_ ~tracer ~kind:OT.Span.Span_kind_producer "loop.outer"
         ~attrs:[ "i", `Int !i ]
     in
 
@@ -39,7 +39,7 @@ let run_job () =
       (* parent scope is found via thread local storage *)
       let@ scope =
         Atomic.incr num_tr;
-        OT.Tracer.with_ tracer ~kind:OT.Span.Span_kind_internal ~parent:_scope
+        OT.Tracer.with_ ~tracer ~kind:OT.Span.Span_kind_internal ~parent:_scope
           ~attrs:[ "j", `Int j ]
           "loop.inner"
       in
@@ -49,13 +49,9 @@ let run_job () =
         Atomic.incr num_sleep
       );
 
-      let logger = OT.Logger.get_main () in
-      OT.Emitter.emit logger
-        [
-          OT.Log_record.make_strf ~trace_id:(OT.Span.trace_id scope)
-            ~span_id:(OT.Span.id scope) ~severity:Severity_number_info
-            "inner at %d" j;
-        ];
+      OT.Logger.logf ~trace_id:(OT.Span.trace_id scope)
+        ~span_id:(OT.Span.id scope) ~severity:Severity_number_info (fun k ->
+          k "inner at %d" j);
 
       incr i;
 
@@ -63,7 +59,7 @@ let run_job () =
         (* allocate some stuff *)
         if !stress_alloc_ then (
           let@ _ =
-            OT.Tracer.with_ tracer ~kind:OT.Span.Span_kind_internal
+            OT.Tracer.with_ ~tracer ~kind:OT.Span.Span_kind_internal
               ~parent:scope "alloc"
           in
           Atomic.incr num_tr;

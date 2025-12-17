@@ -18,8 +18,8 @@
   (re_export opentelemetry.util)
   (re_export opentelemetry.ambient-context)
   (re_export opentelemetry.atomic)
+  (re_export hmap)
   mtime
   mtime.clock.os
   pbrt
-  threads
-  hmap))
+  threads))

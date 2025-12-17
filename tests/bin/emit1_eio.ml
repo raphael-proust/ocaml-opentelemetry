@@ -26,7 +26,7 @@ let run_job clock _job_id iterations : unit =
   let tracer = OT.Tracer.get_main () in
   let@ scope =
     Atomic.incr num_tr;
-    OT.Tracer.with_ tracer ~kind:OT.Span.Span_kind_producer "loop.outer"
+    OT.Tracer.with_ ~tracer ~kind:OT.Span.Span_kind_producer "loop.outer"
       ~attrs:[ "i", `Int (Atomic.get i) ]
   in
 
@@ -38,7 +38,7 @@ let run_job clock _job_id iterations : unit =
       (* parent scope is found via thread local storage *)
       let@ scope =
         Atomic.incr num_tr;
-        OT.Tracer.with_ tracer ~parent:scope ~kind:OT.Span.Span_kind_internal
+        OT.Tracer.with_ ~tracer ~parent:scope ~kind:OT.Span.Span_kind_internal
           ~attrs:[ "j", `Int j ]
           "loop.inner"
       in
@@ -46,20 +46,16 @@ let run_job clock _job_id iterations : unit =
       let () = Eio.Time.sleep clock !sleep_outer in
       Atomic.incr num_sleep;
 
-      (let logger = OT.Logger.get_main () in
-       OT.Emitter.emit logger
-         [
-           OT.Log_record.make_strf ~trace_id:(OT.Span.trace_id scope)
-             ~span_id:(OT.Span.id scope) ~severity:Severity_number_info
-             "inner at %d" j;
-         ]);
+      OT.Logger.logf ~trace_id:(OT.Span.trace_id scope)
+        ~span_id:(OT.Span.id scope) ~severity:Severity_number_info (fun k ->
+          k "inner at %d" j);
 
       Atomic.incr i;
 
       try
         Atomic.incr num_tr;
         let@ scope =
-          OT.Tracer.with_ tracer ~kind:OT.Span.Span_kind_internal ~parent:scope
+          OT.Tracer.with_ ~tracer ~kind:OT.Span.Span_kind_internal ~parent:scope
             "alloc"
         in
         (* allocate some stuff *)

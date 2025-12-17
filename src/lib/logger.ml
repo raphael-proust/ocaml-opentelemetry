@@ -6,26 +6,55 @@
 
 open Opentelemetry_emitter
 
-type t = Log_record.t Emitter.t
+(** {2 Logger object} *)
 
-let dummy : t = Emitter.dummy
+type t = {
+  emit: Log_record.t Emitter.t;
+  clock: Clock.t;
+}
 
-let enabled = Emitter.enabled
+let dummy : t = { emit = Emitter.dummy; clock = Clock.Main.dynamic_main }
 
-let of_exporter (exp : Exporter.t) : t = exp.emit_logs
+let[@inline] enabled (self : t) : bool = Emitter.enabled self.emit
 
-let get_main () : t =
-  match Main_exporter.get () with
-  | None -> dummy
-  | Some e -> e.emit_logs
+let of_exporter (exp : Exporter.t) : t =
+  { emit = exp.emit_logs; clock = exp.clock }
 
-let (emit [@deprecated "use an explicit Logger.t"]) =
+let[@inline] emit1 (self : t) (l : Log_record.t) = Emitter.emit self.emit [ l ]
+
+let (emit_main [@deprecated "use an explicit Logger.t"]) =
  fun (logs : Log_record.t list) : unit ->
   match Main_exporter.get () with
   | None -> ()
   | Some exp -> Exporter.send_logs exp logs
 
-(** An emitter that uses the current {!Main_exporter} *)
-let dynamic_forward_to_main_exporter : t =
-  Main_exporter.Util.dynamic_forward_to_main_exporter () ~get_emitter:(fun e ->
-      e.emit_logs)
+(** An emitter that uses the current {!Main_exporter}'s logger *)
+let dynamic_main : t =
+  of_exporter Main_exporter.dynamic_forward_to_main_exporter
+
+(** {2 Logging helpers} *)
+
+open Log_record
+
+(** Create log record and emit it on [logger] *)
+let log ?(logger = dynamic_main) ?attrs ?trace_id ?span_id
+    ?(severity : severity option) (msg : string) : unit =
+  if enabled logger then (
+    let now = Clock.now logger.clock in
+    let logrec =
+      Log_record.make_str ?attrs ?trace_id ?span_id ?severity
+        ~observed_time_unix_nano:now msg
+    in
+    emit1 logger logrec
+  )
+
+(** Helper to create a log record, with a suspension, like in [Logs].
+
+    Example usage:
+    [logf ~severity:Severity_number_warn (fun k->k"oh no!! %s it's bad: %b"
+     "help" true)] *)
+let logf ?(logger = dynamic_main) ?attrs ?trace_id ?span_id ?severity msgf :
+    unit =
+  if enabled logger then
+    msgf (fun fmt ->
+        Format.kasprintf (log ~logger ?attrs ?trace_id ?span_id ?severity) fmt)

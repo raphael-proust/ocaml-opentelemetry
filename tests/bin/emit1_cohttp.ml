@@ -29,7 +29,7 @@ let run_job job_id : unit Lwt.t =
     let tracer = T.Tracer.get_main () in
     let@ scope =
       Atomic.incr num_tr;
-      T.Tracer.with_ tracer ~kind:T.Span.Span_kind_producer "loop.outer"
+      T.Tracer.with_ ~tracer ~kind:T.Span.Span_kind_producer "loop.outer"
         ~attrs:[ "i", `Int job_id ]
     in
 
@@ -41,7 +41,7 @@ let run_job job_id : unit Lwt.t =
         (* parent scope is found via thread local storage *)
         let@ span =
           Atomic.incr num_tr;
-          T.Tracer.with_ tracer ~parent:scope ~kind:T.Span.Span_kind_internal
+          T.Tracer.with_ ~tracer ~parent:scope ~kind:T.Span.Span_kind_internal
             ~attrs:[ "j", `Int j ]
             "loop.inner"
         in
@@ -49,19 +49,15 @@ let run_job job_id : unit Lwt.t =
         let* () = Lwt_unix.sleep !sleep_outer in
         Atomic.incr num_sleep;
 
-        Opentelemetry_emitter.Emitter.emit (T.Logger.get_main ())
-          [
-            T.Log_record.make_strf ~trace_id:(T.Span.trace_id span)
-              ~span_id:(T.Span.id span) ~severity:Severity_number_info
-              "inner at %d" j;
-          ];
+        T.Logger.logf ~trace_id:(T.Span.trace_id span) ~span_id:(T.Span.id span)
+          ~severity:Severity_number_info (fun k -> k "inner at %d" j);
 
         incr i;
 
         try%lwt
           Atomic.incr num_tr;
           let@ scope =
-            T.Tracer.with_ tracer ~kind:T.Span.Span_kind_internal ~parent:span
+            T.Tracer.with_ ~tracer ~kind:T.Span.Span_kind_internal ~parent:span
               "alloc"
           in
           (* allocate some stuff *)
