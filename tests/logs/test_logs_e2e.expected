@@ -5,8 +5,12 @@
              value = Some(String_value("ocaml-otel.test"));
            };
            { key = "service.name"; value = Some(String_value("emit_logs")); };
-           { key = "src"; value = Some(String_value("application")); };
-           { key = "my_reporter_attr"; value = Some(String_value("foo")); }
+           { key = "process.runtime.version";
+             value = Some(String_value("5.3.0"));
+           };
+           { key = "process.runtime.name";
+             value = Some(String_value("ocaml"));
+           }
            ];
         dropped_attributes_count = 0 (* absent *);
         entity_refs = [];
@@ -25,7 +29,134 @@
             severity_number = Severity_number_debug;
             severity_text = "debug";
             body = Some(String_value("emit_logs: starting"));
-            attributes = [];
+            attributes =
+              [{ key = "src"; value = Some(String_value("application")); };
+               { key = "my_reporter_attr"; value = Some(String_value("foo")); }
+               ];
+            dropped_attributes_count = 0 (* absent *);
+            flags = 0 (* absent *);
+            trace_id = <bytes len=0> (* absent *);
+            span_id = <bytes len=0> (* absent *);
+            event_name = "" (* absent *);
+          };
+          { time_unix_nano = 1;
+            observed_time_unix_nano = 1;
+            severity_number = Severity_number_info2;
+            severity_text = "info";
+            body = Some(String_value("emit_logs: info log"));
+            attributes =
+              [{ key = "src"; value = Some(String_value("application")); };
+               { key = "my_reporter_attr"; value = Some(String_value("foo")); }
+               ];
+            dropped_attributes_count = 0 (* absent *);
+            flags = 0 (* absent *);
+            trace_id = <bytes len=0> (* absent *);
+            span_id = <bytes len=0> (* absent *);
+            event_name = "" (* absent *);
+          };
+          { time_unix_nano = 2;
+            observed_time_unix_nano = 2;
+            severity_number = Severity_number_warn;
+            severity_text = "warning";
+            body = Some(String_value("emit_logs: warn log"));
+            attributes =
+              [{ key = "src"; value = Some(String_value("application")); };
+               { key = "my_reporter_attr"; value = Some(String_value("foo")); }
+               ];
+            dropped_attributes_count = 0 (* absent *);
+            flags = 0 (* absent *);
+            trace_id = <bytes len=0> (* absent *);
+            span_id = <bytes len=0> (* absent *);
+            event_name = "" (* absent *);
+          };
+          { time_unix_nano = 3;
+            observed_time_unix_nano = 3;
+            severity_number = Severity_number_error;
+            severity_text = "error";
+            body = Some(String_value("emit_logs: error log"));
+            attributes =
+              [{ key = "src"; value = Some(String_value("application")); };
+               { key = "my_reporter_attr"; value = Some(String_value("foo")); }
+               ];
+            dropped_attributes_count = 0 (* absent *);
+            flags = 0 (* absent *);
+            trace_id = <bytes len=0> (* absent *);
+            span_id = <bytes len=0> (* absent *);
+            event_name = "" (* absent *);
+          };
+          { time_unix_nano = 4;
+            observed_time_unix_nano = 4;
+            severity_number = Severity_number_info;
+            severity_text = "app";
+            body = Some(String_value("emit_logs: app log"));
+            attributes =
+              [{ key = "src"; value = Some(String_value("application")); };
+               { key = "my_reporter_attr"; value = Some(String_value("foo")); }
+               ];
+            dropped_attributes_count = 0 (* absent *);
+            flags = 0 (* absent *);
+            trace_id = <bytes len=0> (* absent *);
+            span_id = <bytes len=0> (* absent *);
+            event_name = "" (* absent *);
+          };
+          { time_unix_nano = 5;
+            observed_time_unix_nano = 5;
+            severity_number = Severity_number_info2;
+            severity_text = "info";
+            body =
+              Some(
+                String_value(
+                  "emit_logs: this log is emitted with varied tags from a span"));
+            attributes =
+              [{ key = "src"; value = Some(String_value("application")); };
+               { key = "string_list_attr"; value = Some(String_value("")); };
+               { key = "bool_attr"; value = Some(String_value("")); };
+               { key = "float_attr"; value = Some(String_value("")); };
+               { key = "int_attr"; value = Some(String_value("")); };
+               { key = "string_attr"; value = Some(String_value("")); };
+               { key = "my_reporter_attr"; value = Some(String_value("foo")); }
+               ];
+            dropped_attributes_count = 0 (* absent *);
+            flags = 0 (* absent *);
+            trace_id = <bytes len=16>;
+            span_id = <bytes len=8>;
+            event_name = "" (* absent *);
+          };
+          { time_unix_nano = 6;
+            observed_time_unix_nano = 6;
+            severity_number = Severity_number_info2;
+            severity_text = "info";
+            body =
+              Some(
+                String_value(
+                  "emit_logs: this log will be emitted with varied tags"));
+            attributes =
+              [{ key = "src"; value = Some(String_value("application")); };
+               { key = "string_list_attr"; value = Some(String_value("")); };
+               { key = "bool_attr"; value = Some(String_value("")); };
+               { key = "float_attr"; value = Some(String_value("")); };
+               { key = "int_attr"; value = Some(String_value("")); };
+               { key = "string_attr"; value = Some(String_value("")); };
+               { key = "my_reporter_attr"; value = Some(String_value("foo")); }
+               ];
+            dropped_attributes_count = 0 (* absent *);
+            flags = 0 (* absent *);
+            trace_id = <bytes len=0> (* absent *);
+            span_id = <bytes len=0> (* absent *);
+            event_name = "" (* absent *);
+          };
+          { time_unix_nano = 7;
+            observed_time_unix_nano = 7;
+            severity_number = Severity_number_info2;
+            severity_text = "info";
+            body =
+              Some(
+                String_value(
+                  "emit_logs: this log will be emitted from otel and fmt reporter"));
+            attributes =
+              [{ key = "src"; value = Some(String_value("application")); };
+               { key = "my_fmt_attr"; value = Some(String_value("bar")); }
+               ];
             dropped_attributes_count = 0 (* absent *);
             flags = 0 (* absent *);
             trace_id = <bytes len=0> (* absent *);
@@ -38,334 +169,3 @@
      ];
   schema_url = "" (* absent *);
 }
-{ resource =
-      Some(
-        { attributes =
-            [{ key = "service.namespace";
-               value = Some(String_value("ocaml-otel.test"));
-             };
-             { key = "service.name"; value = Some(String_value("emit_logs")); };
-             { key = "src"; value = Some(String_value("application")); };
-             { key = "my_reporter_attr"; value = Some(String_value("foo")); }
-             ];
-          dropped_attributes_count = 0 (* absent *);
-          entity_refs = [];
-        });
-    scope_logs =
-      [{ scope =
-           Some(
-             { name = "ocaml-otel";
-               version = "%%VERSION_NUM%%";
-               attributes = [];
-               dropped_attributes_count = 0 (* absent *);
-             });
-         log_records =
-           [{ time_unix_nano = 0;
-              observed_time_unix_nano = 0;
-              severity_number = Severity_number_info2;
-              severity_text = "info";
-              body = Some(String_value("emit_logs: info log"));
-              attributes = [];
-              dropped_attributes_count = 0 (* absent *);
-              flags = 0 (* absent *);
-              trace_id = <bytes len=0> (* absent *);
-              span_id = <bytes len=0> (* absent *);
-              event_name = "" (* absent *);
-            }
-            ];
-         schema_url = "" (* absent *);
-       }
-       ];
-    schema_url = "" (* absent *);
-  }
-{ resource =
-        Some(
-          { attributes =
-              [{ key = "service.namespace";
-                 value = Some(String_value("ocaml-otel.test"));
-               };
-               { key = "service.name";
-                 value = Some(String_value("emit_logs"));
-               };
-               { key = "src"; value = Some(String_value("application")); };
-               { key = "my_reporter_attr"; value = Some(String_value("foo")); }
-               ];
-            dropped_attributes_count = 0 (* absent *);
-            entity_refs = [];
-          });
-      scope_logs =
-        [{ scope =
-             Some(
-               { name = "ocaml-otel";
-                 version = "%%VERSION_NUM%%";
-                 attributes = [];
-                 dropped_attributes_count = 0 (* absent *);
-               });
-           log_records =
-             [{ time_unix_nano = 0;
-                observed_time_unix_nano = 0;
-                severity_number = Severity_number_warn;
-                severity_text = "warning";
-                body = Some(String_value("emit_logs: warn log"));
-                attributes = [];
-                dropped_attributes_count = 0 (* absent *);
-                flags = 0 (* absent *);
-                trace_id = <bytes len=0> (* absent *);
-                span_id = <bytes len=0> (* absent *);
-                event_name = "" (* absent *);
-              }
-              ];
-           schema_url = "" (* absent *);
-         }
-         ];
-      schema_url = "" (* absent *);
-    }
-{ resource =
-          Some(
-            { attributes =
-                [{ key = "service.namespace";
-                   value = Some(String_value("ocaml-otel.test"));
-                 };
-                 { key = "service.name";
-                   value = Some(String_value("emit_logs"));
-                 };
-                 { key = "src"; value = Some(String_value("application")); };
-                 { key = "my_reporter_attr";
-                   value = Some(String_value("foo"));
-                 }
-                 ];
-              dropped_attributes_count = 0 (* absent *);
-              entity_refs = [];
-            });
-        scope_logs =
-          [{ scope =
-               Some(
-                 { name = "ocaml-otel";
-                   version = "%%VERSION_NUM%%";
-                   attributes = [];
-                   dropped_attributes_count = 0 (* absent *);
-                 });
-             log_records =
-               [{ time_unix_nano = 0;
-                  observed_time_unix_nano = 0;
-                  severity_number = Severity_number_error;
-                  severity_text = "error";
-                  body = Some(String_value("emit_logs: error log"));
-                  attributes = [];
-                  dropped_attributes_count = 0 (* absent *);
-                  flags = 0 (* absent *);
-                  trace_id = <bytes len=0> (* absent *);
-                  span_id = <bytes len=0> (* absent *);
-                  event_name = "" (* absent *);
-                }
-                ];
-             schema_url = "" (* absent *);
-           }
-           ];
-        schema_url = "" (* absent *);
-      }
-{ resource =
-            Some(
-              { attributes =
-                  [{ key = "service.namespace";
-                     value = Some(String_value("ocaml-otel.test"));
-                   };
-                   { key = "service.name";
-                     value = Some(String_value("emit_logs"));
-                   };
-                   { key = "src"; value = Some(String_value("application")); };
-                   { key = "my_reporter_attr";
-                     value = Some(String_value("foo"));
-                   }
-                   ];
-                dropped_attributes_count = 0 (* absent *);
-                entity_refs = [];
-              });
-          scope_logs =
-            [{ scope =
-                 Some(
-                   { name = "ocaml-otel";
-                     version = "%%VERSION_NUM%%";
-                     attributes = [];
-                     dropped_attributes_count = 0 (* absent *);
-                   });
-               log_records =
-                 [{ time_unix_nano = 0;
-                    observed_time_unix_nano = 0;
-                    severity_number = Severity_number_info;
-                    severity_text = "app";
-                    body = Some(String_value("emit_logs: app log"));
-                    attributes = [];
-                    dropped_attributes_count = 0 (* absent *);
-                    flags = 0 (* absent *);
-                    trace_id = <bytes len=0> (* absent *);
-                    span_id = <bytes len=0> (* absent *);
-                    event_name = "" (* absent *);
-                  }
-                  ];
-               schema_url = "" (* absent *);
-             }
-             ];
-          schema_url = "" (* absent *);
-        }
-{ resource =
-              Some(
-                { attributes =
-                    [{ key = "service.namespace";
-                       value = Some(String_value("ocaml-otel.test"));
-                     };
-                     { key = "service.name";
-                       value = Some(String_value("emit_logs"));
-                     };
-                     { key = "src";
-                       value = Some(String_value("application"));
-                     };
-                     { key = "string_list_attr";
-                       value = Some(String_value(""));
-                     };
-                     { key = "bool_attr"; value = Some(String_value("")); };
-                     { key = "float_attr"; value = Some(String_value("")); };
-                     { key = "int_attr"; value = Some(String_value("")); };
-                     { key = "string_attr"; value = Some(String_value("")); };
-                     { key = "my_reporter_attr";
-                       value = Some(String_value("foo"));
-                     }
-                     ];
-                  dropped_attributes_count = 0 (* absent *);
-                  entity_refs = [];
-                });
-            scope_logs =
-              [{ scope =
-                   Some(
-                     { name = "ocaml-otel";
-                       version = "%%VERSION_NUM%%";
-                       attributes = [];
-                       dropped_attributes_count = 0 (* absent *);
-                     });
-                 log_records =
-                   [{ time_unix_nano = 0;
-                      observed_time_unix_nano = 0;
-                      severity_number = Severity_number_info2;
-                      severity_text = "info";
-                      body =
-                        Some(
-                          String_value(
-                            "emit_logs: this log is emitted with varied tags from a span"));
-                      attributes = [];
-                      dropped_attributes_count = 0 (* absent *);
-                      flags = 0 (* absent *);
-                      trace_id = <bytes len=16>;
-                      span_id = <bytes len=8>;
-                      event_name = "" (* absent *);
-                    }
-                    ];
-                 schema_url = "" (* absent *);
-               }
-               ];
-            schema_url = "" (* absent *);
-          }
-{ resource =
-                Some(
-                  { attributes =
-                      [{ key = "service.namespace";
-                         value = Some(String_value("ocaml-otel.test"));
-                       };
-                       { key = "service.name";
-                         value = Some(String_value("emit_logs"));
-                       };
-                       { key = "src";
-                         value = Some(String_value("application"));
-                       };
-                       { key = "string_list_attr";
-                         value = Some(String_value(""));
-                       };
-                       { key = "bool_attr"; value = Some(String_value("")); };
-                       { key = "float_attr"; value = Some(String_value("")); };
-                       { key = "int_attr"; value = Some(String_value("")); };
-                       { key = "string_attr"; value = Some(String_value("")); };
-                       { key = "my_reporter_attr";
-                         value = Some(String_value("foo"));
-                       }
-                       ];
-                    dropped_attributes_count = 0 (* absent *);
-                    entity_refs = [];
-                  });
-              scope_logs =
-                [{ scope =
-                     Some(
-                       { name = "ocaml-otel";
-                         version = "%%VERSION_NUM%%";
-                         attributes = [];
-                         dropped_attributes_count = 0 (* absent *);
-                       });
-                   log_records =
-                     [{ time_unix_nano = 0;
-                        observed_time_unix_nano = 0;
-                        severity_number = Severity_number_info2;
-                        severity_text = "info";
-                        body =
-                          Some(
-                            String_value(
-                              "emit_logs: this log will be emitted with varied tags"));
-                        attributes = [];
-                        dropped_attributes_count = 0 (* absent *);
-                        flags = 0 (* absent *);
-                        trace_id = <bytes len=0> (* absent *);
-                        span_id = <bytes len=0> (* absent *);
-                        event_name = "" (* absent *);
-                      }
-                      ];
-                   schema_url = "" (* absent *);
-                 }
-                 ];
-              schema_url = "" (* absent *);
-            }
-{ resource =
-                  Some(
-                    { attributes =
-                        [{ key = "service.namespace";
-                           value = Some(String_value("ocaml-otel.test"));
-                         };
-                         { key = "service.name";
-                           value = Some(String_value("emit_logs_fmt"));
-                         };
-                         { key = "src";
-                           value = Some(String_value("application"));
-                         };
-                         { key = "my_fmt_attr";
-                           value = Some(String_value("bar"));
-                         }
-                         ];
-                      dropped_attributes_count = 0 (* absent *);
-                      entity_refs = [];
-                    });
-                scope_logs =
-                  [{ scope =
-                       Some(
-                         { name = "ocaml-otel";
-                           version = "%%VERSION_NUM%%";
-                           attributes = [];
-                           dropped_attributes_count = 0 (* absent *);
-                         });
-                     log_records =
-                       [{ time_unix_nano = 0;
-                          observed_time_unix_nano = 0;
-                          severity_number = Severity_number_info2;
-                          severity_text = "info";
-                          body =
-                            Some(
-                              String_value(
-                                "emit_logs: this log will be emitted from otel and fmt reporter"));
-                          attributes = [];
-                          dropped_attributes_count = 0 (* absent *);
-                          flags = 0 (* absent *);
-                          trace_id = <bytes len=0> (* absent *);
-                          span_id = <bytes len=0> (* absent *);
-                          event_name = "" (* absent *);
-                        }
-                        ];
-                     schema_url = "" (* absent *);
-                   }
-                   ];
-                schema_url = "" (* absent *);
-              }
