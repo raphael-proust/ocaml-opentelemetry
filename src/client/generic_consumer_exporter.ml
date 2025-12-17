@@ -52,10 +52,12 @@ end = struct
 
   let tick (self : state) = Notifier.trigger self.notify
 
-  (** Shutdown one worker, when the queue is closed *)
+  (** Shutdown worker *)
   let shutdown_worker (self : state) : unit =
-    (* we were the last worker *)
-    (* Printf.eprintf "worker %d: last one!\n%!" tid; *)
+    (* only one worker, so, turn off exporter *)
+    OTEL.Exporter.shutdown self.exp;
+
+    (* and we are shut down! *)
     Atomic.set self.status Stopped;
     Aswitch.turn_off self.active_trigger
 

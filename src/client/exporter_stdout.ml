@@ -7,13 +7,17 @@ open struct
   let pp_span out (sp : OTEL.Span.t) =
     let open OTEL in
     Format.fprintf out
-      "@[<2>SPAN {@ trace_id: %a@ span_id: %a@ name: %S@ start: %a@ end: %a@]}"
+      "@[<2>SPAN {@ trace_id: %a@ span_id: %a@ name: %S@ start: %a@ end: %a@ \
+       dur: %.6fs@]}"
       Trace_id.pp
       (Trace_id.of_bytes sp.trace_id)
       Span_id.pp
       (Span_id.of_bytes sp.span_id)
       sp.name Timestamp_ns.pp_debug sp.start_time_unix_nano
       Timestamp_ns.pp_debug sp.end_time_unix_nano
+      ((Int64.to_float sp.end_time_unix_nano
+       -. Int64.to_float sp.start_time_unix_nano)
+      /. 1e9)
 
   let pp_log out l =
     Format.fprintf out "@[<2>LOG %a@]" Proto.Logs.pp_log_record l
@@ -34,7 +38,7 @@ open struct
     )
 end
 
-let stdout ?(clock = OTEL.Clock.Main.dynamic_main) () : OTEL.Exporter.t =
+let stdout ?(clock = OTEL.Clock.ptime_clock) () : OTEL.Exporter.t =
   let open Opentelemetry_util in
   let out = Format.std_formatter in
   let mutex = Mutex.create () in
