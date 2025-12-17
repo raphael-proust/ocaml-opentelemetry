@@ -18,4 +18,4 @@ let pp_debug out (self : t) =
   | Some span ->
     (match Ptime.add_span Ptime.epoch span with
     | None -> Format.fprintf out "ts: <%Ld ns>" self
-    | Some ptime -> Ptime.pp_human () out ptime)
+    | Some ptime -> Ptime.pp_rfc3339 ~space:false ~frac_s:6 () out ptime)
