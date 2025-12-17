@@ -12,15 +12,22 @@
  (name signal_gatherer)
  (modules signal_gatherer)
  (libraries
-  str
-  alcotest
-  cohttp-lwt-unix
-  fmt
-  unix
-  containers
+  (re_export str)
+  (re_export alcotest)
+  (re_export cohttp)
+  conduit-lwt
+  conduit-lwt-unix
+  (re_export cohttp-lwt)
+  (re_export cohttp-lwt-unix)
+  (re_export fmt)
+  (re_export unix)
+  (re_export containers)
   logs.fmt
   logs.threaded
-  opentelemetry-client))
+  lwt
+  lwt.unix
+  (re_export opentelemetry)
+  (re_export opentelemetry-client)))
 
 (library
  (name clients_e2e_lib)

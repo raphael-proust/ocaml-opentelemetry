@@ -1,4 +1,4 @@
 (tests
  (names test_urls)
  (package opentelemetry-client-ocurl)
- (libraries opentelemetry opentelemetry-client-ocurl))
+ (libraries unix opentelemetry opentelemetry-client-ocurl))
