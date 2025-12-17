@@ -49,11 +49,15 @@ val setup :
       an atomic boolean. When it becomes true, background threads will all stop
       after a little while. *)
 
-val remove_backend : unit -> unit
-(** Shutdown current backend
+val remove_exporter : unit -> unit
+(** Shutdown current exporter
     @since 0.12 *)
 
+val remove_backend : unit -> unit
+[@@deprecated "use remove_exporter"]
+(** @since 0.12 *)
+
 val with_setup :
-  ?config:Config.t -> ?enable:bool -> (unit -> 'a) -> Eio_unix.Stdenv.base -> 'a
+  ?config:Config.t -> ?enable:bool -> Eio_unix.Stdenv.base -> (unit -> 'a) -> 'a
 (** [with_setup () f] is like [setup(); f()] but takes care of cleaning up after
     [f()] returns See {!setup} for more details. *)
