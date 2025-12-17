@@ -171,7 +171,7 @@ let create_consumer ?(config = Config.make ()) ~sw ~env () :
 let create_exporter ?(config = Config.make ()) ~sw ~env () =
   let consumer = create_consumer ~config ~sw ~env () in
   let bq =
-    Bounded_queue_sync.create
+    Opentelemetry_client_sync.Bounded_queue_sync.create
       ~high_watermark:Bounded_queue.Defaults.high_watermark ()
   in
   Exporter_queued.create ~clock:Clock.ptime_clock ~q:bq ~consumer ()

@@ -21,14 +21,13 @@ let num_tr = Atomic.make 0
 
 let run_job () : unit Lwt.t =
   let active = OT.Main_exporter.active () in
-  let tracer = OT.Tracer.get_main () in
   let i = ref 0 in
   let cnt = ref 0 in
 
   while%lwt OT.Aswitch.is_on active && !cnt < !n do
     let@ _scope =
       Atomic.incr num_tr;
-      OT.Tracer.with_ tracer ~kind:OT.Span.Span_kind_producer "loop.outer"
+      OT.Tracer.with_ ~kind:OT.Span.Span_kind_producer "loop.outer"
         ~attrs:[ "i", `Int !i ]
     in
 
@@ -39,7 +38,7 @@ let run_job () : unit Lwt.t =
       (* parent scope is found via thread local storage *)
       let@ scope =
         Atomic.incr num_tr;
-        OT.Tracer.with_ tracer ~kind:OT.Span.Span_kind_internal ~parent:_scope
+        OT.Tracer.with_ ~kind:OT.Span.Span_kind_internal ~parent:_scope
           ~attrs:[ "j", `Int j ]
           "loop.inner"
       in
@@ -49,13 +48,9 @@ let run_job () : unit Lwt.t =
         Atomic.incr num_sleep
       );
 
-      let logger = OT.Logger.get_main () in
-      OT.Emitter.emit logger
-        [
-          OT.Log_record.make_strf ~trace_id:(OT.Span.trace_id scope)
-            ~span_id:(OT.Span.id scope) ~severity:Severity_number_info
-            "inner at %d" j;
-        ];
+      OT.Logger.logf ~trace_id:(OT.Span.trace_id scope)
+        ~span_id:(OT.Span.id scope) ~severity:Severity_number_info (fun k ->
+          k "inner at %d" j);
 
       incr i;
 
@@ -63,8 +58,8 @@ let run_job () : unit Lwt.t =
          (* allocate some stuff *)
          if !stress_alloc_ then (
            let@ _ =
-             OT.Tracer.with_ tracer ~kind:OT.Span.Span_kind_internal
-               ~parent:scope "alloc"
+             OT.Tracer.with_ ~kind:OT.Span.Span_kind_internal ~parent:scope
+               "alloc"
            in
            Atomic.incr num_tr;
 
@@ -95,10 +90,11 @@ let run () : unit Lwt.t =
   OT.Metrics_callbacks.with_set_added_to_main_exporter (fun set ->
       OT.Metrics_callbacks.add_metrics_cb set OT.Main_exporter.self_metrics;
       OT.Metrics_callbacks.add_metrics_cb set (fun () ->
+          let now = OT.Clock.now_main () in
           OT.Metrics.
             [
               sum ~name:"num-sleep" ~is_monotonic:true
-                [ int (Atomic.get num_sleep) ];
+                [ int ~now (Atomic.get num_sleep) ];
             ]));
 
   let n_jobs = max 1 !n_jobs in
@@ -180,8 +176,7 @@ let () =
     )
   in
 
-  Lwt_main.run
-  @@
   let@ () = Fun.protect ~finally in
-  Opentelemetry_client_ocurl_lwt.with_setup ~config () run
-    ~after_shutdown:after_exp_shutdown
+  Lwt_main.run
+    (Opentelemetry_client_ocurl_lwt.with_setup ~config () run
+       ~after_shutdown:after_exp_shutdown)

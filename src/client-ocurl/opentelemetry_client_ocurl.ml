@@ -17,8 +17,8 @@ let n_bytes_sent : int Atomic.t = Atomic.make 0
 type error = OTELC.Export_error.t
 
 open struct
-  module Notifier = OTELC.Notifier_sync
-  module IO = OTELC.Io_sync
+  module Notifier = Opentelemetry_client_sync.Notifier_sync
+  module IO = Opentelemetry_client_sync.Io_sync
 end
 
 module Httpc : OTELC.Generic_http_consumer.HTTPC with module IO = IO = struct
@@ -88,7 +88,7 @@ let consumer ?(config = Config.make ()) () :
 let create_exporter ?(config = Config.make ()) () : OTEL.Exporter.t =
   let consumer = consumer ~config () in
   let bq =
-    OTELC.Bounded_queue_sync.create
+    Opentelemetry_client_sync.Bounded_queue_sync.create
       ~high_watermark:OTELC.Bounded_queue.Defaults.high_watermark ()
   in
 
@@ -99,7 +99,7 @@ let create_backend = create_exporter
 
 let shutdown_and_wait ?(after_shutdown = ignore) (self : OTEL.Exporter.t) : unit
     =
-  let open Opentelemetry_client in
+  let open Opentelemetry_client_sync in
   let sq = Sync_queue.create () in
   OTEL.Aswitch.on_turn_off (OTEL.Exporter.active self) (fun () ->
       Sync_queue.push sq ());
@@ -119,13 +119,14 @@ let setup_ ?(config : Config.t = Config.make ()) () : OTEL.Exporter.t =
     let sleep_ms = min 60_000 (max 2 config.ticker_interval_ms) in
     let active = OTEL.Exporter.active exporter in
     ignore
-      (OTELC.Util_thread.setup_ticker_thread ~active ~sleep_ms exporter ()
+      (Opentelemetry_client_sync.Util_thread.setup_ticker_thread ~active
+         ~sleep_ms exporter ()
         : Thread.t)
   );
   exporter
 
 let remove_exporter () : unit =
-  let open Opentelemetry_client in
+  let open Opentelemetry_client_sync in
   (* used to wait *)
   let sq = Sync_queue.create () in
   OTEL.Main_exporter.remove () ~on_done:(fun () -> Sync_queue.push sq ());

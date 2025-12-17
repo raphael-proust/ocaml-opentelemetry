@@ -25,7 +25,12 @@
 (executable
  (name emit1_stdout)
  (modules emit1_stdout)
- (libraries unix threads opentelemetry opentelemetry-client))
+ (libraries
+  unix
+  threads
+  opentelemetry
+  opentelemetry-client
+  opentelemetry-client.sync))
 
 (executable
  (name emit1_cohttp)
@@ -78,7 +83,10 @@
  (modules cohttp_client)
  (libraries
   cohttp-lwt-unix
+  lwt
+  lwt.unix
   unix
+  uri
   opentelemetry
   opentelemetry-client-cohttp-lwt
   opentelemetry-cohttp-lwt))

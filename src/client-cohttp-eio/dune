@@ -7,6 +7,7 @@
  (libraries
   (re_export opentelemetry)
   (re_export opentelemetry-client)
+  (re_export opentelemetry-client.sync)
   (re_export eio)
   (re_export eio.core)
   (re_export eio.unix)
