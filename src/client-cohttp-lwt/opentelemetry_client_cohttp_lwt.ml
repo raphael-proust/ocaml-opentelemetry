@@ -120,6 +120,7 @@ let create_exporter ?(config = Config.make ()) () =
 let create_backend = create_exporter
 
 let setup_ ?config () : unit =
+  Opentelemetry_client_lwt.Util_ambient_context.setup_ambient_context ();
   let exp = create_exporter ?config () in
   Main_exporter.set exp;
   ()

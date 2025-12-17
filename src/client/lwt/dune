@@ -16,6 +16,8 @@
   opentelemetry.emitter
   (re_export opentelemetry.core)
   (re_export opentelemetry)
+  (re_export opentelemetry.ambient-context)
+  opentelemetry.ambient-context.lwt
   (re_export opentelemetry-client)
   (re_export lwt)
   threads

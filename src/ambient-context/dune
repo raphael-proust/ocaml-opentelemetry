@@ -14,6 +14,7 @@
   threads
   (re_export opentelemetry.ambient-context.core)
   (re_export opentelemetry.atomic)
+  (re_export opentelemetry.util)
   (select
    default_.ml
    from
