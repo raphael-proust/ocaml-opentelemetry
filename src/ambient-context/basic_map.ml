@@ -23,17 +23,11 @@ open struct
     let tid = Thread.id @@ Thread.self () in
 
     let ctx_ref =
-      try Int_map.find tid (Atomic.get self.m)
+      Opentelemetry_util.Util_atomic.update_cas self.m @@ fun m ->
+      try Int_map.find tid m, m
       with Not_found ->
         let r = ref Context.empty in
-        while
-          let m = Atomic.get self.m in
-          let m' = Int_map.add tid r m in
-          not (Atomic.compare_and_set self.m m m')
-        do
-          ()
-        done;
-        r
+        r, Int_map.add tid r m
     in
 
     let old_ctx = !ctx_ref in
