@@ -15,20 +15,16 @@ type t = Metrics.metric
 
 let pp = Proto.Metrics.pp_metric
 
-open struct
-  let _program_start = Timestamp_ns.now_unix_ns ()
-end
-
 (** Number data point, as a float *)
-let float ?start_time_unix_nano ?(now = Timestamp_ns.now_unix_ns ())
-    ?(attrs = []) (d : float) : number_data_point =
+let float ?start_time_unix_nano ?(now = Clock.now_main ()) ?(attrs = [])
+    (d : float) : number_data_point =
   let attributes = attrs |> List.map Key_value.conv in
   make_number_data_point ?start_time_unix_nano ~time_unix_nano:now ~attributes
     ~value:(As_double d) ()
 
 (** Number data point, as an int *)
-let int ?start_time_unix_nano ?(now = Timestamp_ns.now_unix_ns ()) ?(attrs = [])
-    (i : int) : number_data_point =
+let int ?start_time_unix_nano ?(now = Clock.now_main ()) ?(attrs = []) (i : int)
+    : number_data_point =
   let attributes = attrs |> List.map Key_value.conv in
   make_number_data_point ?start_time_unix_nano ~time_unix_nano:now ~attributes
     ~value:(As_int (Int64.of_int i))
@@ -60,10 +56,9 @@ let sum ~name ?description ?unit_
       count value of histogram for each bucket. Sum of the counts must be equal
       to [count]. length must be [1+length explicit_bounds]
     @param explicit_bounds strictly increasing list of bounds for the buckets *)
-let histogram_data_point ?start_time_unix_nano
-    ?(now = Timestamp_ns.now_unix_ns ()) ?(attrs = []) ?(exemplars = [])
-    ?(explicit_bounds = []) ?sum ~bucket_counts ~count () : histogram_data_point
-    =
+let histogram_data_point ?start_time_unix_nano ?(now = Clock.now_main ())
+    ?(attrs = []) ?(exemplars = []) ?(explicit_bounds = []) ?sum ~bucket_counts
+    ~count () : histogram_data_point =
   let attributes = attrs |> List.map Key_value.conv in
   make_histogram_data_point ?start_time_unix_nano ~time_unix_nano:now
     ~attributes ~exemplars ~bucket_counts ~explicit_bounds ~count ?sum ()

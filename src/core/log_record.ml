@@ -47,10 +47,9 @@ let pp_flags = Proto.Logs.pp_log_record_flags
 
 let pp = Proto.Logs.pp_log_record
 
-(** Make a single log entry *)
-let make ?time ?(observed_time_unix_nano = Timestamp_ns.now_unix_ns ())
-    ?severity ?log_level ?flags ?trace_id ?span_id ?(attrs = [])
-    (body : Value.t) : t =
+(** Make a single log entry. *)
+let make ?time ?severity ?log_level ?flags ?trace_id ?span_id ?(attrs = [])
+    ~(observed_time_unix_nano : Timestamp_ns.t) (body : Value.t) : t =
   let time_unix_nano =
     match time with
     | None -> observed_time_unix_nano
@@ -65,16 +64,16 @@ let make ?time ?(observed_time_unix_nano = Timestamp_ns.now_unix_ns ())
     ~attributes ?body ()
 
 (** Make a log entry whose body is a string *)
-let make_str ?time ?observed_time_unix_nano ?severity ?log_level ?flags
-    ?trace_id ?span_id ?attrs (body : string) : t =
-  make ?time ?observed_time_unix_nano ?severity ?log_level ?flags ?trace_id
+let make_str ?time ?severity ?log_level ?flags ?trace_id ?span_id ?attrs
+    ~observed_time_unix_nano (body : string) : t =
+  make ?time ~observed_time_unix_nano ?severity ?log_level ?flags ?trace_id
     ?span_id ?attrs (`String body)
 
 (** Make a log entry with format *)
-let make_strf ?time ?observed_time_unix_nano ?severity ?log_level ?flags
-    ?trace_id ?span_id ?attrs fmt =
+let make_strf ?time ?severity ?log_level ?flags ?trace_id ?span_id ?attrs
+    ~observed_time_unix_nano fmt =
   Format.kasprintf
     (fun bod ->
-      make_str ?time ?observed_time_unix_nano ?severity ?log_level ?flags
+      make_str ?time ~observed_time_unix_nano ?severity ?log_level ?flags
         ?trace_id ?span_id ?attrs bod)
     fmt

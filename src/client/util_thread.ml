@@ -34,7 +34,10 @@ let setup_ticker_thread ~(active : Aswitch.t) ~sleep_ms (exp : OTEL.Exporter.t)
       while Aswitch.is_on active do
         Thread.delay sleep_s;
 
-        if Aswitch.is_on active then OTEL.Exporter.tick exp
+        if Aswitch.is_on active then (
+          let mtime = Mtime_clock.now () in
+          OTEL.Exporter.tick exp ~mtime
+        )
       done
     with
     | Sync_queue.Closed -> ()

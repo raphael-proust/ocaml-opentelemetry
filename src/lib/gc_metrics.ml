@@ -10,7 +10,7 @@ end
 
 let get_metrics () : Metrics.t list =
   let gc = Gc.quick_stat () in
-  let now = Timestamp_ns.now_unix_ns () in
+  let now = Clock.now_main () in
   let open Metrics in
   let open Conventions.Metrics in
   [

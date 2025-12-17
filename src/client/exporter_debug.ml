@@ -3,12 +3,14 @@ open Opentelemetry_emitter
 
 (** [debug ?out ()] is an exporter that pretty-prints signals on [out].
     @param out the formatter into which to print, default [stderr]. *)
-let debug ?(out = Format.err_formatter) () : OTEL.Exporter.t =
+let debug ?(clock = OTEL.Clock.Main.dynamic_main) ?(out = Format.err_formatter)
+    () : OTEL.Exporter.t =
   let open Proto in
   let active, trigger = Aswitch.create () in
   let ticker = Cb_set.create () in
   {
     active = (fun () -> active);
+    clock;
     emit_spans =
       Emitter.make_simple () ~emit:(fun sp ->
           List.iter (Format.fprintf out "SPAN: %a@." Trace.pp_span) sp);

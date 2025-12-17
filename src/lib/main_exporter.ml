@@ -21,7 +21,8 @@ let remove ~on_done () : unit =
   | None -> on_done ()
   | Some exp ->
     Aswitch.on_turn_off (Exporter.active exp) on_done;
-    tick exp;
+    let mtime = Mtime_clock.now () in
+    tick exp ~mtime;
     shutdown exp
 
 (** Is there a configured exporter? *)
@@ -42,10 +43,10 @@ module Util = struct
     let enabled () = present () in
     let closed () = not (enabled ()) in
     let flush_and_close () = () in
-    let tick ~now:_ =
+    let tick ~mtime =
       match get () with
       | None -> ()
-      | Some exp -> Exporter.tick exp
+      | Some exp -> Exporter.tick exp ~mtime
     in
     let emit signals =
       if signals <> [] then (
@@ -100,6 +101,7 @@ let dynamic_forward_to_main_exporter : Exporter.t =
   let shutdown () = () in
   {
     Exporter.active;
+    clock = Clock.Main.dynamic_main;
     emit_metrics;
     emit_spans;
     emit_logs;

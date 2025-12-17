@@ -26,6 +26,8 @@ let add_batching ~(config : Http_config.t) (exp : OTEL.Exporter.t) :
   let active = exp.active in
   let tick = exp.tick in
   let on_tick = exp.on_tick in
+  let clock = exp.clock in
+
   let self_metrics () = exp.self_metrics () in
   let shutdown () =
     let open Opentelemetry_emitter in
@@ -38,6 +40,7 @@ let add_batching ~(config : Http_config.t) (exp : OTEL.Exporter.t) :
 
   {
     OTEL.Exporter.active;
+    clock;
     emit_spans;
     emit_metrics;
     emit_logs;

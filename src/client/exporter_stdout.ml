@@ -34,7 +34,7 @@ open struct
     )
 end
 
-let stdout : OTEL.Exporter.t =
+let stdout ?(clock = OTEL.Clock.Main.dynamic_main) () : OTEL.Exporter.t =
   let open Opentelemetry_util in
   let out = Format.std_formatter in
   let mutex = Mutex.create () in
@@ -49,7 +49,7 @@ let stdout : OTEL.Exporter.t =
       pp_vlist mutex pp_signal out l
     in
     let enabled () = Aswitch.is_on active in
-    let tick ~now:_ = () in
+    let tick ~mtime:_ = () in
     let flush_and_close () =
       if Aswitch.is_on active then
         let@ () = Util_mutex.protect mutex in
@@ -73,6 +73,7 @@ let stdout : OTEL.Exporter.t =
 
   {
     active = (fun () -> active);
+    clock;
     emit_spans;
     emit_logs;
     emit_metrics;

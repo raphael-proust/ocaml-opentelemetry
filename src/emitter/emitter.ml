@@ -13,9 +13,9 @@ type -'a t = {
           signals it's given. *)
   emit: 'a list -> unit;
       (** Emit signals. @raise Closed if the emitter is closed. *)
-  tick: now:Mtime.t -> unit;
+  tick: mtime:Mtime.t -> unit;
       (** Call regularly to ensure background work is done. The current
-          timestamp is passed to improve testability. *)
+          monotonic timestamp is passed to improve testability. *)
   closed: unit -> bool;
       (** True if the emitter is already closed. Beware TOCTOU bugs. *)
   flush_and_close: unit -> unit;
@@ -27,7 +27,7 @@ let[@inline] enabled self : bool = self.enabled ()
 
 let[@inline] emit (self : _ t) l : unit = if l <> [] then self.emit l
 
-let[@inline] tick (self : _ t) ~now : unit = self.tick ~now
+let[@inline] tick (self : _ t) ~mtime : unit = self.tick ~mtime
 
 let[@inline] closed self : bool = self.closed ()
 
@@ -61,7 +61,7 @@ let make_simple ?tick ?closed ?enabled ?(flush_and_close = ignore) ~emit () :
     _ t =
   let tick =
     match tick with
-    | None -> fun ~now:_ -> ()
+    | None -> fun ~mtime:_ -> ()
     | Some f -> f
   in
   let closed, enabled =
@@ -78,7 +78,7 @@ let dummy : _ t =
   {
     enabled = (fun () -> false);
     emit = ignore;
-    tick = (fun ~now:_ -> ());
+    tick = (fun ~mtime:_ -> ());
     closed = (fun () -> true);
     flush_and_close = ignore;
   }

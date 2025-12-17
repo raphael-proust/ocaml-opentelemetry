@@ -12,7 +12,8 @@ let start_ticker_thread ?(finally = ignore) ~(stop : bool Atomic.t)
       Lwt.return ()
     ) else
       let* () = Lwt_unix.sleep frequency_s in
-      OTEL.Exporter.tick exp;
+      let mtime = Mtime_clock.now () in
+      OTEL.Exporter.tick exp ~mtime;
       tick_loop ()
   in
   Lwt.async tick_loop

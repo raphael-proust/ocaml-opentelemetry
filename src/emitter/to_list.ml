@@ -8,7 +8,7 @@ let to_list (l : 'a list ref) : 'a Emitter.t =
       (fun sigs ->
         if Atomic.get closed then raise Emitter.Closed;
         l := List.rev_append sigs !l);
-    tick = (fun ~now:_ -> ());
+    tick = (fun ~mtime:_ -> ());
     closed = (fun () -> Atomic.get closed);
     flush_and_close = (fun () -> Atomic.set closed true);
   }
