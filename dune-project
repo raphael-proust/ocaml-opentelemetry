@@ -9,6 +9,8 @@
 
 (version 0.12)
 
+(implicit_transitive_deps false)
+
 (authors "the Imandra team and contributors")
 
 (maintainers
