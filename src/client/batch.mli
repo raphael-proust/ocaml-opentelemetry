@@ -5,7 +5,7 @@ type 'a t
 val make :
   ?batch:int ->
   ?high_watermark:int ->
-  ?now:Mtime.t ->
+  ?mtime:Mtime.t ->
   ?timeout:Mtime.span ->
   unit ->
   'a t
@@ -21,15 +21,15 @@ val make :
       transmission in case of signal floods. Default
       [if batch = 1 then 100 else batch * 10].
 
-    @param now the current time. Default [Mtime_clock.now ()].
+    @param mtime the current time.
 
     @param timeout
       the time span after which a batch is ready to pop, whether or not it is
       {b full}. *)
 
-val pop_if_ready : ?force:bool -> now:Mtime.t -> 'a t -> 'a list option
-(** [pop_if_ready ~now b] is [Some xs], where is [xs] includes all the elements
-    {!push}ed since the last batch, if the batch ready to be emitted.
+val pop_if_ready : ?force:bool -> mtime:Mtime.t -> 'a t -> 'a list option
+(** [pop_if_ready ~mtime b] is [Some xs], where is [xs] includes all the
+    elements {!push}ed since the last batch, if the batch ready to be emitted.
 
     A batch is ready to pop if it contains some elements and
 
@@ -39,7 +39,7 @@ val pop_if_ready : ?force:bool -> now:Mtime.t -> 'a t -> 'a list option
       the last pop was ready, or
     - the pop is [force]d,
 
-    @param now the current time
+    @param mtime the current monotonic time
 
     @param force
       override the other batch conditions, for when when we just want to emit
