@@ -135,16 +135,8 @@ let remove_backend = remove_exporter
 
 let with_setup ?(config = Config.make ()) ?(enable = true) () f : _ Lwt.t =
   if enable then (
-    let open Lwt.Syntax in
     setup_ ~config ();
 
-    Lwt.catch
-      (fun () ->
-        let* res = f () in
-        let+ () = remove_exporter () in
-        res)
-      (fun exn ->
-        let* () = remove_exporter () in
-        Lwt.reraise exn)
+    Lwt.finalize f remove_exporter
   ) else
     f ()
