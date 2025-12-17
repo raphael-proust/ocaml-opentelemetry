@@ -5,13 +5,25 @@ type t = { now: unit -> Timestamp_ns.t } [@@unboxed]
 
 let[@inline] now (self : t) : Timestamp_ns.t = self.now ()
 
-(** Clock using {!Unix.gettimeofday} *)
-let unix : t =
-  { now = (fun () -> Int64.of_float (Unix.gettimeofday () *. 1e9)) }
+open struct
+  module TS = Timestamp_ns
+
+  let ns_in_a_day = Int64.(mul 1_000_000_000L (of_int (24 * 3600)))
+
+  (** Current unix timestamp in nanoseconds *)
+  let[@inline] now_ptime_ () : TS.t =
+    let d, ps = Ptime_clock.now_d_ps () in
+    let d = Int64.(mul (of_int d) ns_in_a_day) in
+    let ns = Int64.(div ps 1_000L) in
+    Int64.(add d ns)
+end
+
+(** Clock that uses ptime. *)
+let ptime_clock : t = { now = now_ptime_ }
 
 module Main = struct
   open struct
-    let main : t Atomic.t = Atomic.make unix
+    let main : t Atomic.t = Atomic.make ptime_clock
   end
 
   let[@inline] get () = Atomic.get main

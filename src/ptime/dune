@@ -1,5 +1,0 @@
-(library
- (name opentelemetry_ptime)
- (public_name opentelemetry.ptime)
- (synopsis "clock for opentelemetry using ptime")
- (libraries opentelemetry.core ptime ptime.clock.os))

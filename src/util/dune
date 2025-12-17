@@ -4,5 +4,6 @@
  (flags :standard -open Opentelemetry_atomic)
  (libraries
   (re_export opentelemetry.atomic)
+  ptime
   opentelemetry.domain)
  (synopsis "Basic utilities for opentelemetry"))
