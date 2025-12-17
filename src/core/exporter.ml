@@ -35,7 +35,7 @@ let dummy () : t =
   let active, trigger = Aswitch.create () in
   {
     active = (fun () -> active);
-    clock = Clock.unix;
+    clock = Clock.ptime_clock;
     emit_spans = Emitter.dummy;
     emit_metrics = Emitter.dummy;
     emit_logs = Emitter.dummy;

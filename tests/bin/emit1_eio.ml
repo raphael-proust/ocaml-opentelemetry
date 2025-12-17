@@ -23,10 +23,9 @@ let num_tr = Atomic.make 0
 let i = Atomic.make 0
 
 let run_job clock _job_id iterations : unit =
-  let tracer = OT.Tracer.get_main () in
   let@ scope =
     Atomic.incr num_tr;
-    OT.Tracer.with_ ~tracer ~kind:OT.Span.Span_kind_producer "loop.outer"
+    OT.Tracer.with_ ~kind:OT.Span.Span_kind_producer "loop.outer"
       ~attrs:[ "i", `Int (Atomic.get i) ]
   in
 
@@ -38,7 +37,7 @@ let run_job clock _job_id iterations : unit =
       (* parent scope is found via thread local storage *)
       let@ scope =
         Atomic.incr num_tr;
-        OT.Tracer.with_ ~tracer ~parent:scope ~kind:OT.Span.Span_kind_internal
+        OT.Tracer.with_ ~parent:scope ~kind:OT.Span.Span_kind_internal
           ~attrs:[ "j", `Int j ]
           "loop.inner"
       in
@@ -55,8 +54,7 @@ let run_job clock _job_id iterations : unit =
       try
         Atomic.incr num_tr;
         let@ scope =
-          OT.Tracer.with_ ~tracer ~kind:OT.Span.Span_kind_internal ~parent:scope
-            "alloc"
+          OT.Tracer.with_ ~kind:OT.Span.Span_kind_internal ~parent:scope "alloc"
         in
         (* allocate some stuff *)
         if !stress_alloc_ then (
@@ -80,10 +78,11 @@ let run env proc iterations () : unit =
   OT.Metrics_callbacks.(
     with_set_added_to_main_exporter (fun set ->
         add_metrics_cb set (fun () ->
+            let now = OT.Clock.now_main () in
             OT.Metrics.
               [
                 sum ~name:"num-sleep" ~is_monotonic:true
-                  [ int (Atomic.get num_sleep) ];
+                  [ int ~now (Atomic.get num_sleep) ];
               ])));
 
   let n_jobs = max 1 !n_jobs in

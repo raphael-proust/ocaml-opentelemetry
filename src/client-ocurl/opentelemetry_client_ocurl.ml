@@ -92,8 +92,7 @@ let create_exporter ?(config = Config.make ()) () : OTEL.Exporter.t =
       ~high_watermark:OTELC.Bounded_queue.Defaults.high_watermark ()
   in
 
-  OTELC.Exporter_queued.create ~clock:Opentelemetry_ptime.clock ~q:bq ~consumer
-    ()
+  OTELC.Exporter_queued.create ~clock:OTEL.Clock.ptime_clock ~q:bq ~consumer ()
   |> OTELC.Exporter_add_batching.add_batching ~config:config.common
 
 let create_backend = create_exporter

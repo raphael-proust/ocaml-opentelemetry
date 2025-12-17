@@ -85,7 +85,7 @@ let create_exporter ?(config = Config.make ()) () =
     Bounded_queue_sync.create
       ~high_watermark:Bounded_queue.Defaults.high_watermark ()
   in
-  Exporter_queued.create ~clock:Opentelemetry_ptime.clock ~q:bq ~consumer ()
+  Exporter_queued.create ~clock:Clock.ptime_clock ~q:bq ~consumer ()
   |> Exporter_add_batching.add_batching ~config
 
 let create_backend = create_exporter

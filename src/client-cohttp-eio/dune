@@ -6,7 +6,6 @@
   (>= %{ocaml_version} 5.0))
  (libraries
   (re_export opentelemetry)
-  opentelemetry.ptime
   (re_export opentelemetry-client)
   (re_export eio)
   (re_export eio.core)

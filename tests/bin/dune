@@ -14,10 +14,10 @@
  (preprocess
   (pps lwt_ppx))
  (libraries
-  unix
   threads
   lwt
   lwt.unix
+  unix
   opentelemetry
   opentelemetry-client
   opentelemetry-client-ocurl-lwt))
@@ -69,6 +69,7 @@
   opentelemetry-cohttp-lwt
   opentelemetry-logs
   logs
+  unix
   lwt.unix
   logs.fmt))
 
@@ -77,6 +78,7 @@
  (modules cohttp_client)
  (libraries
   cohttp-lwt-unix
+  unix
   opentelemetry
   opentelemetry-client-cohttp-lwt
   opentelemetry-cohttp-lwt))

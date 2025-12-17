@@ -7,7 +7,6 @@
  (libraries
   (re_export opentelemetry)
   (re_export opentelemetry-client)
-  opentelemetry.ptime
   opentelemetry-client.lwt
   (re_export lwt)
   (re_export cohttp-lwt)

@@ -6,7 +6,6 @@
   (pps lwt_ppx))
  (libraries
   (re_export opentelemetry)
-  opentelemetry.ptime
   opentelemetry.atomic
   (re_export opentelemetry-client)
   (re_export opentelemetry-client.lwt)
