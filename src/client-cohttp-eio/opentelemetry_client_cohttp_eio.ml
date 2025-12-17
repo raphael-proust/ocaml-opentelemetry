@@ -1,5 +1,3 @@
-open Eio.Std
-
 (*
    https://github.com/open-telemetry/oteps/blob/main/text/0035-opentelemetry-protocol.md
    https://github.com/open-telemetry/oteps/blob/main/text/0099-otlp-http.md
@@ -48,7 +46,9 @@ struct
          ensure it runs in the Eio thread? *)
       Eio.Condition.broadcast self.cond
 
-    let delete = ignore
+    let delete self =
+      trigger self;
+      ()
 
     let wait self =
       Eio.Mutex.lock self.mutex;
@@ -193,12 +193,10 @@ let remove_exporter () =
 
 let remove_backend = remove_exporter
 
-let with_setup ?config ?(enable = true) f env =
-  if enable then
+let with_setup ?config ?(enable = true) env f =
+  if enable then (
     Eio.Switch.run @@ fun sw ->
-    snd
-    @@ Fiber.pair
-         (fun () -> setup_ ~sw ?config env)
-         (fun () -> Fun.protect ~finally:(fun () -> remove_backend ()) f)
-  else
+    setup_ ~sw ?config env;
+    Fun.protect f ~finally:remove_exporter
+  ) else
     f ()
