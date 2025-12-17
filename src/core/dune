@@ -6,10 +6,10 @@
  (libraries
   opentelemetry.proto
   opentelemetry.util
-  opentelemetry.atomic
-  opentelemetry.emitter
-  ptime
-  ptime.clock.os
+  (re_export opentelemetry.atomic)
+  (re_export opentelemetry.emitter)
   pbrt
   threads
+  unix
+  mtime
   hmap))

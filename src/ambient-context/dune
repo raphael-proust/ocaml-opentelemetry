@@ -11,8 +11,9 @@
   Opentelemetry_atomic)
  (libraries
   hmap
-  opentelemetry.ambient-context.core
-  opentelemetry.atomic
+  threads
+  (re_export opentelemetry.ambient-context.core)
+  (re_export opentelemetry.atomic)
   (select
    default_.ml
    from

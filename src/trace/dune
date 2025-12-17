@@ -5,9 +5,9 @@
  (optional) ; trace
  (flags :standard -open Opentelemetry_util -open Opentelemetry_atomic)
  (libraries
-  opentelemetry.ambient-context
-  opentelemetry.util
+  (re_export opentelemetry.ambient-context)
+  (re_export opentelemetry.util)
   opentelemetry.atomic
-  opentelemetry
-  trace.core
+  (re_export opentelemetry)
+  (re_export trace.core)
   trace.subscriber))

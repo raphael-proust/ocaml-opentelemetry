@@ -5,15 +5,21 @@
  (enabled_if
   (>= %{ocaml_version} 5.0))
  (libraries
-  opentelemetry
-  opentelemetry-client
-  eio
-  eio.unix
-  cohttp
-  cohttp-eio
-  tls-eio
+  (re_export opentelemetry)
+  opentelemetry.ptime
+  (re_export opentelemetry-client)
+  (re_export eio)
+  (re_export eio.core)
+  (re_export eio.unix)
+  (re_export cohttp)
+  (re_export cohttp-eio)
+  (re_export tls-eio)
+  fmt
+  tls
+  domain-name
   uri
   pbrt
+  threads
   mtime
   mtime.clock.os
   ca-certs

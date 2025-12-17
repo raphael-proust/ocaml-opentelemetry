@@ -2,4 +2,5 @@
  (name opentelemetry_ambient_context_core)
  (public_name opentelemetry.ambient-context.core)
  (synopsis "Core definitions for ambient-context")
- (libraries hmap))
+ (libraries
+  (re_export hmap)))

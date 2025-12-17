@@ -8,9 +8,10 @@
   opentelemetry.emitter
   opentelemetry.proto
   opentelemetry.domain
-  pbrt
-  threads.posix
   mtime
-  mtime.clock.os)
+  mtime.clock.os
+  unix
+  pbrt
+  threads.posix)
  (synopsis
   "Basic exporters, as well as common types and logic shared between exporters"))
