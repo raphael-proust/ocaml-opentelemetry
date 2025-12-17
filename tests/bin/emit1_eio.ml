@@ -15,25 +15,22 @@ let stress_alloc_ = ref true
 
 let num_sleep = Atomic.make 0
 
-let stop = Atomic.make false
-
 let num_tr = Atomic.make 0
 
-(* Counter used to mark simulated failures *)
-let i = Atomic.make 0
+let n = ref max_int
 
 let run_job clock _job_id iterations : unit =
-  let@ scope =
-    Atomic.incr num_tr;
-    OT.Tracer.with_ ~kind:OT.Span.Span_kind_producer "loop.outer"
-      ~attrs:[ "i", `Int (Atomic.get i) ]
-  in
+  let i = ref 0 in
+  while OT.Aswitch.is_on (OT.Main_exporter.active ()) && !i < !n do
+    let@ scope =
+      Atomic.incr num_tr;
+      OT.Tracer.with_ ~kind:OT.Span.Span_kind_producer "loop.outer"
+        ~attrs:[ "i", `Int !i ]
+    in
 
-  for j = 0 to iterations do
-    if j >= iterations then
-      (* Terminate program, having reached our max iterations *)
-      Atomic.set stop true
-    else
+    incr i;
+
+    for j = 1 to iterations do
       (* parent scope is found via thread local storage *)
       let@ scope =
         Atomic.incr num_tr;
@@ -49,8 +46,6 @@ let run_job clock _job_id iterations : unit =
         ~span_id:(OT.Span.id scope) ~severity:Severity_number_info (fun k ->
           k "inner at %d" j);
 
-      Atomic.incr i;
-
       try
         Atomic.incr num_tr;
         let@ scope =
@@ -65,18 +60,21 @@ let run_job clock _job_id iterations : unit =
         let () = Eio.Time.sleep clock !sleep_inner in
         Atomic.incr num_sleep;
 
-        if j = 4 && Atomic.get i mod 13 = 0 then failwith "oh no";
+        if j = 4 && !i mod 13 = 0 then failwith "oh no";
 
         (* simulate a failure *)
         OT.Span.add_event scope (OT.Event.make "done with alloc")
       with Failure _ -> ()
+    done
   done
 
 let run env proc iterations () : unit =
   OT.Gc_metrics.setup_on_main_exporter ();
 
   OT.Metrics_callbacks.(
-    with_set_added_to_main_exporter (fun set ->
+    with_set_added_to_main_exporter
+      ~min_interval:Mtime.Span.(10 * ms)
+      (fun set ->
         add_metrics_cb set (fun () ->
             let now = OT.Clock.now_main () in
             OT.Metrics.
@@ -126,6 +124,7 @@ let () =
         Arg.Set_int n_iterations,
         " the number of iterations to run" );
       "-j", Arg.Set_int n_jobs, " number of jobs per processes";
+      "-n", Arg.Set_int n, " number of iterations (default ∞)";
       "--procs", Arg.Set_int n_procs, " number of processes";
     ]
     |> Arg.align
@@ -156,16 +155,14 @@ let () =
           (Atomic.get num_tr) elapsed n_per_sec)
   in
   Eio_main.run @@ fun env ->
-  (if !n_procs < 2 then
-     Opentelemetry_client_cohttp_eio.with_setup ~config
-       (run env 0 !n_iterations) env
-   else
-     Eio.Switch.run @@ fun sw ->
-     Opentelemetry_client_cohttp_eio.setup ~config ~sw env;
-     let dm = Eio.Stdenv.domain_mgr env in
-     Eio.Switch.run (fun sw ->
-         for proc = 1 to !n_procs do
-           Eio.Fiber.fork ~sw @@ fun () ->
-           Eio.Domain_manager.run dm (run env proc !n_iterations)
-         done));
-  OT.Main_exporter.remove () ~on_done:ignore
+  if !n_procs < 2 then
+    Opentelemetry_client_cohttp_eio.with_setup ~config env
+      (run env 0 !n_iterations)
+  else
+    Opentelemetry_client_cohttp_eio.with_setup ~config env @@ fun () ->
+    let dm = Eio.Stdenv.domain_mgr env in
+    Eio.Switch.run (fun sw ->
+        for proc = 1 to !n_procs do
+          Eio.Fiber.fork ~sw @@ fun () ->
+          Eio.Domain_manager.run dm (run env proc !n_iterations)
+        done)

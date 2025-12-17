@@ -18,21 +18,26 @@ module Tracer = struct
   include Tracer
 
   (** Sync span guard *)
-  let with_ ?(tracer = dynamic_main) ?force_new_trace_id ?trace_state ?attrs
-      ?kind ?trace_id ?parent ?links name (cb : Span.t -> 'a Lwt.t) : 'a Lwt.t =
+  let with_ (type a) ?(tracer = dynamic_main) ?force_new_trace_id ?trace_state
+      ?attrs ?kind ?trace_id ?parent ?links name (cb : Span.t -> a Lwt.t) :
+      a Lwt.t =
     let thunk, finally =
       with_thunk_and_finally tracer ?force_new_trace_id ?trace_state ?attrs
         ?kind ?trace_id ?parent ?links name cb
     in
 
-    try%lwt
-      let* rv = thunk () in
-      let () = finally (Ok ()) in
-      Lwt.return rv
-    with e ->
+    match thunk () with
+    | exception exn ->
       let bt = Printexc.get_raw_backtrace () in
-      let () = finally (Error (e, bt)) in
-      reraise e
+      finally (Error (exn, bt));
+      Printexc.raise_with_backtrace exn bt
+    | promise ->
+      Lwt.on_any promise
+        (fun _ -> finally (Ok ()))
+        (fun exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          finally (Error (exn, bt)));
+      promise
 end
 
 module Trace = Tracer [@@deprecated "use Tracer"]

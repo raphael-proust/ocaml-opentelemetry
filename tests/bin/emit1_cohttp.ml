@@ -12,6 +12,8 @@ let sleep_outer = ref 2.0
 
 let n_jobs = ref 1
 
+let n = ref max_int
+
 let iterations = ref 1
 
 let num_sleep = Atomic.make 0
@@ -20,61 +22,53 @@ let stress_alloc_ = ref true
 
 let num_tr = Atomic.make 0
 
-(* Counter used to mark simulated failures *)
-let i = ref 0
-
 let run_job job_id : unit Lwt.t =
   let switch = T.Main_exporter.active () in
-  while%lwt T.Aswitch.is_on switch do
-    let tracer = T.Tracer.get_main () in
+  let i = ref 0 in
+  while%lwt T.Aswitch.is_on switch && !i < !n do
     let@ scope =
       Atomic.incr num_tr;
-      T.Tracer.with_ ~tracer ~kind:T.Span.Span_kind_producer "loop.outer"
-        ~attrs:[ "i", `Int job_id ]
+      T.Tracer.with_ ~kind:T.Span.Span_kind_producer "loop.outer"
+        ~attrs:[ "i", `Int !i; "job_id", `Int job_id ]
     in
 
-    for%lwt j = 0 to !iterations do
-      if j >= !iterations then
-        (* Terminate program, having reached our max iterations *)
-        T.Main_exporter.remove ()
-      else
-        (* parent scope is found via thread local storage *)
-        let@ span =
-          Atomic.incr num_tr;
-          T.Tracer.with_ ~tracer ~parent:scope ~kind:T.Span.Span_kind_internal
-            ~attrs:[ "j", `Int j ]
-            "loop.inner"
-        in
+    incr i;
 
-        let* () = Lwt_unix.sleep !sleep_outer in
+    for%lwt j = 1 to !iterations do
+      (* parent scope is found via thread local storage *)
+      let@ span =
+        Atomic.incr num_tr;
+        T.Tracer.with_ ~parent:scope ~kind:T.Span.Span_kind_internal
+          ~attrs:[ "j", `Int j ]
+          "loop.inner"
+      in
+
+      let* () = Lwt_unix.sleep !sleep_outer in
+      Atomic.incr num_sleep;
+
+      T.Logger.logf ~trace_id:(T.Span.trace_id span) ~span_id:(T.Span.id span)
+        ~severity:Severity_number_info (fun k -> k "inner at %d" j);
+
+      try%lwt
+        Atomic.incr num_tr;
+        let@ scope =
+          T.Tracer.with_ ~kind:T.Span.Span_kind_internal ~parent:span "alloc"
+        in
+        (* allocate some stuff *)
+        if !stress_alloc_ then (
+          let _arr = Sys.opaque_identity @@ Array.make (25 * 25551) 42.0 in
+          ignore _arr
+        );
+
+        let* () = Lwt_unix.sleep !sleep_inner in
         Atomic.incr num_sleep;
 
-        T.Logger.logf ~trace_id:(T.Span.trace_id span) ~span_id:(T.Span.id span)
-          ~severity:Severity_number_info (fun k -> k "inner at %d" j);
+        (* simulate a failure *)
+        if j = 4 && !i mod 13 = 0 then failwith "oh no";
 
-        incr i;
-
-        try%lwt
-          Atomic.incr num_tr;
-          let@ scope =
-            T.Tracer.with_ ~tracer ~kind:T.Span.Span_kind_internal ~parent:span
-              "alloc"
-          in
-          (* allocate some stuff *)
-          if !stress_alloc_ then (
-            let _arr = Sys.opaque_identity @@ Array.make (25 * 25551) 42.0 in
-            ignore _arr
-          );
-
-          let* () = Lwt_unix.sleep !sleep_inner in
-          Atomic.incr num_sleep;
-
-          (* simulate a failure *)
-          if j = 4 && !i mod 13 = 0 then failwith "oh no";
-
-          T.Span.add_event scope (T.Event.make "done with alloc");
-          Lwt.return ()
-        with Failure _ -> Lwt.return ()
+        T.Span.add_event scope (T.Event.make "done with alloc");
+        Lwt.return ()
+      with Failure _ -> Lwt.return ()
     done
   done
 
@@ -84,10 +78,11 @@ let run () : unit Lwt.t =
   T.Metrics_callbacks.(
     with_set_added_to_main_exporter (fun set ->
         add_metrics_cb set (fun () ->
+            let now = T.Clock.now_main () in
             T.Metrics.
               [
                 sum ~name:"num-sleep" ~is_monotonic:true
-                  [ int (Atomic.get num_sleep) ];
+                  [ int ~now (Atomic.get num_sleep) ];
               ])));
 
   let n_jobs = max 1 !n_jobs in
@@ -124,9 +119,12 @@ let () =
       "--batch-logs", Arg.Int (( := ) batch_logs), " size of logs batch";
       "--sleep-inner", Arg.Set_float sleep_inner, " sleep (in s) in inner loop";
       "--sleep-outer", Arg.Set_float sleep_outer, " sleep (in s) in outer loop";
-      "--iterations", Arg.Set_int iterations, " the number of iterations to run";
+      ( "--iterations",
+        Arg.Set_int iterations,
+        " the number of inner iterations to run" );
       "-j", Arg.Set_int n_jobs, " number of parallel jobs";
-      "--procs", Arg.Set_int n_procs, " number of processes";
+      "-n", Arg.Set_int n, " number of outer iterations (default ∞)";
+      "--procs", Arg.Set_int n_procs, " number of processes (stub)";
     ]
     |> Arg.align
   in

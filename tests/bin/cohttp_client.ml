@@ -14,10 +14,9 @@ let mk_client ~scope =
 
 let run () =
   let open Lwt.Syntax in
-  let tracer = OT.Tracer.get_main () in
   let rec go () =
     let@ scope =
-      Otel_lwt.Tracer.with_ tracer ~kind:OT.Span.Span_kind_producer "loop.outer"
+      Otel_lwt.Tracer.with_ ~kind:OT.Span.Span_kind_producer "loop.outer"
     in
     let* () = Lwt_unix.sleep !sleep_outer in
     let module C = (val mk_client ~scope) in

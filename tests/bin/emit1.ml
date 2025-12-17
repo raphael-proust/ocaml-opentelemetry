@@ -11,6 +11,8 @@ let sleep_outer = ref 2.0
 
 let n_jobs = ref 1
 
+let iterations = ref 4
+
 let n = ref max_int
 
 let num_sleep = Atomic.make 0
@@ -21,25 +23,24 @@ let num_tr = Atomic.make 0
 
 let run_job () =
   let active = OT.Main_exporter.active () in
-  let tracer = OT.Tracer.get_main () in
   let i = ref 0 in
   let cnt = ref 0 in
 
   while OT.Aswitch.is_on active && !cnt < !n do
     let@ _scope =
       Atomic.incr num_tr;
-      OT.Tracer.with_ ~tracer ~kind:OT.Span.Span_kind_producer "loop.outer"
+      OT.Tracer.with_ ~kind:OT.Span.Span_kind_producer "loop.outer"
         ~attrs:[ "i", `Int !i ]
     in
 
     (* Printf.printf "cnt=%d\n%!" !cnt; *)
     incr cnt;
 
-    for j = 0 to 4 do
+    for j = 1 to !iterations do
       (* parent scope is found via thread local storage *)
       let@ scope =
         Atomic.incr num_tr;
-        OT.Tracer.with_ ~tracer ~kind:OT.Span.Span_kind_internal ~parent:_scope
+        OT.Tracer.with_ ~kind:OT.Span.Span_kind_internal ~parent:_scope
           ~attrs:[ "j", `Int j ]
           "loop.inner"
       in
@@ -59,8 +60,8 @@ let run_job () =
         (* allocate some stuff *)
         if !stress_alloc_ then (
           let@ _ =
-            OT.Tracer.with_ ~tracer ~kind:OT.Span.Span_kind_internal
-              ~parent:scope "alloc"
+            OT.Tracer.with_ ~kind:OT.Span.Span_kind_internal ~parent:scope
+              "alloc"
           in
           Atomic.incr num_tr;
 
@@ -92,12 +93,13 @@ let run () =
   OT.Metrics_callbacks.with_set_added_to_main_exporter (fun set ->
       OT.Metrics_callbacks.add_metrics_cb set OT.Main_exporter.self_metrics;
       OT.Metrics_callbacks.add_metrics_cb set (fun () ->
+          let now = OT.Clock.now_main () in
           OT.Metrics.
             [
               sum ~name:"num-sleep" ~is_monotonic:true
-                [ int (Atomic.get num_sleep) ];
+                [ int ~now (Atomic.get num_sleep) ];
               sum ~name:"otel.bytes-sent" ~is_monotonic:true ~unit_:"B"
-                [ int (Opentelemetry_client_ocurl.n_bytes_sent ()) ];
+                [ int ~now (Opentelemetry_client_ocurl.n_bytes_sent ()) ];
             ]));
 
   let n_jobs = max 1 !n_jobs in
@@ -124,6 +126,8 @@ let () =
   let final_stats = ref false in
 
   let n_bg_threads = ref 0 in
+  let url = ref None in
+  let n_procs = ref 1 in
   let opts =
     [
       "--debug", Arg.Bool (( := ) debug), " enable debug output";
@@ -140,13 +144,25 @@ let () =
       "-j", Arg.Set_int n_jobs, " number of parallel jobs";
       "--bg-threads", Arg.Set_int n_bg_threads, " number of background threads";
       "--no-self-trace", Arg.Clear self_trace, " disable self tracing";
-      "-n", Arg.Set_int n, " number of iterations (default ∞)";
+      "-n", Arg.Set_int n, " number of outer iterations (default ∞)";
+      ( "--iterations",
+        Arg.Set_int iterations,
+        " the number of inner iterations to run" );
+      ( "--url",
+        Arg.String (fun s -> url := Some s),
+        " set the url for the OTel collector" );
       "--final-stats", Arg.Set final_stats, " display some metrics at the end";
+      "--procs", Arg.Set_int n_procs, " number of processes (stub)";
     ]
     |> Arg.align
   in
 
   Arg.parse opts (fun _ -> ()) "emit1 [opt]*";
+
+  if !n_procs > 1 then
+    failwith
+      "TODO: add support for running multiple processes to the lwt-cohttp \
+       emitter";
 
   let some_if_nzero r =
     if !r > 0 then
@@ -156,6 +172,7 @@ let () =
   in
   let config =
     Opentelemetry_client_ocurl.Config.make ~debug:!debug ~self_trace:!self_trace
+      ?url:!url
       ?bg_threads:(some_if_nzero n_bg_threads)
       ~batch_traces:(some_if_nzero batch_traces)
       ~batch_metrics:(some_if_nzero batch_metrics)

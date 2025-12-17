@@ -8,6 +8,7 @@
   (re_export opentelemetry)
   opentelemetry.atomic
   (re_export opentelemetry-client)
+  (re_export opentelemetry-client.sync)
   (re_export opentelemetry-client.lwt)
   threads
   pbrt

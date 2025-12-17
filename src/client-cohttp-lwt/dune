@@ -9,6 +9,7 @@
   (re_export opentelemetry-lwt)
   (re_export opentelemetry-client)
   (re_export opentelemetry-client.lwt)
+  (re_export opentelemetry-client.sync)
   (re_export lwt)
   (re_export lwt.unix)
   (re_export cohttp-lwt)
