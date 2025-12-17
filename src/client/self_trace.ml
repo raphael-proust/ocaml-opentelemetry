@@ -2,7 +2,7 @@ open Common_
 
 let enabled = Atomic.make false
 
-let tracer = Atomic.make OTEL.Tracer.dynamic_forward_to_main_exporter
+let tracer = Atomic.make OTEL.Tracer.dynamic_main
 
 let[@inline] add_event (scope : OTEL.Span.t) ev = OTEL.Span.add_event scope ev
 
@@ -15,7 +15,7 @@ let dummy_span_id = OTEL.Span_id.dummy
 let with_ ?kind ?attrs name f =
   if Atomic.get enabled then (
     let tracer = Atomic.get tracer in
-    OTEL.Tracer.with_ tracer ?kind ?attrs name f
+    OTEL.Tracer.with_ ~tracer ?kind ?attrs name f
   ) else (
     (* A new scope is needed here because it might be modified *)
     let span : OTEL.Span.t =

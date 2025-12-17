@@ -315,11 +315,13 @@ module Make_collector (A : COLLECTOR_ARG) = struct
   let name_thread _name = ()
 
   let counter_int ~data:attrs name cur_val : unit =
-    let m = OTEL.Metrics.(gauge ~name [ int ~attrs cur_val ]) in
+    let now = OTEL.Clock.now exporter.clock in
+    let m = OTEL.Metrics.(gauge ~name [ int ~attrs ~now cur_val ]) in
     OTEL.Exporter.send_metrics exporter [ m ]
 
   let counter_float ~data:attrs name cur_val : unit =
-    let m = OTEL.Metrics.(gauge ~name [ float ~attrs cur_val ]) in
+    let now = OTEL.Clock.now exporter.clock in
+    let m = OTEL.Metrics.(gauge ~name [ float ~attrs ~now cur_val ]) in
     OTEL.Exporter.send_metrics exporter [ m ]
 
   let extension_event = function

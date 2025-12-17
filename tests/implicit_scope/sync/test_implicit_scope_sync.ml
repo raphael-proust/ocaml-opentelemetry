@@ -19,12 +19,11 @@ let bytes_to_hex = Opentelemetry_util.Util_bytes_.bytes_to_hex
 
 let test_stack_based_implicit_scope () =
   let run () =
-    let tracer = Otel.Tracer.get_main () in
-    Otel.Tracer.with_ tracer "first trace" @@ fun _scope ->
+    Otel.Tracer.with_ "first trace" @@ fun _scope ->
     Thread.delay 0.2;
-    Otel.Tracer.with_ tracer "second trace" @@ fun _scope ->
+    Otel.Tracer.with_ "second trace" @@ fun _scope ->
     Thread.delay 0.2;
-    Otel.Tracer.with_ tracer "third trace" @@ fun _scope ->
+    Otel.Tracer.with_ "third trace" @@ fun _scope ->
     Thread.delay 0.2;
     ()
   in

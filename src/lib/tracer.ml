@@ -10,29 +10,31 @@ open Opentelemetry_emitter
 
 type span = Span.t
 
-type t = Span.t Emitter.t
+type t = {
+  emit: Span.t Emitter.t;
+  clock: Clock.t;
+}
 (** A tracer.
 
     https://opentelemetry.io/docs/specs/otel/trace/api/#tracer *)
 
 (** Dummy tracer, always disabled *)
-let dummy : t = Emitter.dummy
+let dummy : t = { emit = Emitter.dummy; clock = Clock.Main.dynamic_main }
+
+let[@inline] enabled (self : t) = Emitter.enabled self.emit
+
+let of_exporter (exp : Exporter.t) : t =
+  { emit = exp.emit_spans; clock = exp.clock }
 
 (** A tracer that uses the current {!Main_exporter} *)
-let dynamic_forward_to_main_exporter : t =
-  Main_exporter.Util.dynamic_forward_to_main_exporter () ~get_emitter:(fun e ->
-      e.emit_spans)
+let dynamic_main : t =
+  Main_exporter.dynamic_forward_to_main_exporter |> of_exporter
 
-(** Get tracer using the main exporter in {!Main_exporter} *)
-let get_main () : t =
-  match Main_exporter.get () with
-  | None -> dummy
-  | Some e -> e.emit_spans
+let (add_event [@deprecated "use Span.add_event"]) = Span.add_event'
 
-let (add_event [@deprecated "use Span.add_event"]) = Span.add_event
+let (add_attrs [@deprecated "use Span.add_attrs"]) = Span.add_attrs'
 
-let (add_attrs [@deprecated "use Span.add_attrs"]) = Span.add_attrs
-
+(** Helper to implement {!with_} and similar functions *)
 let with_thunk_and_finally (self : t) ?(force_new_trace_id = false) ?trace_state
     ?(attrs : (string * [< Value.t ]) list = []) ?kind ?trace_id ?parent ?links
     name cb =
@@ -48,7 +50,8 @@ let with_thunk_and_finally (self : t) ?(force_new_trace_id = false) ?trace_state
     | None, Some p -> Span.trace_id p
     | None, None -> Trace_id.create ()
   in
-  let start_time = Timestamp_ns.now_unix_ns () in
+  (* TODO: pass a clock in emitters *)
+  let start_time = Clock.now_main () in
   let span_id = Span_id.create () in
 
   let parent_id = Option.map Span.id parent in
@@ -59,7 +62,7 @@ let with_thunk_and_finally (self : t) ?(force_new_trace_id = false) ?trace_state
   in
   (* called once we're done, to emit a span *)
   let finally res =
-    let end_time = Timestamp_ns.now_unix_ns () in
+    let end_time = Clock.now_main () in
     Proto.Trace.span_set_end_time_unix_nano span end_time;
 
     (match Span.status span with
@@ -80,7 +83,7 @@ let with_thunk_and_finally (self : t) ?(force_new_trace_id = false) ?trace_state
         in
         Span.set_status span status));
 
-    Emitter.emit self [ span ]
+    Emitter.emit self.emit [ span ]
   in
   let thunk () = Ambient_span.with_ambient span (fun () -> cb span) in
   thunk, finally
@@ -97,14 +100,15 @@ let with_thunk_and_finally (self : t) ?(force_new_trace_id = false) ?trace_state
     {b NOTE} be careful not to call this inside a Gc alarm, as it can cause
     deadlocks.
 
+    @param tracer the tracer to use (default [get_main()])
     @param force_new_trace_id
       if true (default false), the span will not use a ambient scope, the
       [~scope] argument, nor [~trace_id], but will instead always create fresh
       identifiers for this span *)
-let with_ (self : t) ?force_new_trace_id ?trace_state ?attrs ?kind ?trace_id
-    ?parent ?links name (cb : Span.t -> 'a) : 'a =
+let with_ ?(tracer = dynamic_main) ?force_new_trace_id ?trace_state ?attrs ?kind
+    ?trace_id ?parent ?links name (cb : Span.t -> 'a) : 'a =
   let thunk, finally =
-    with_thunk_and_finally self ?force_new_trace_id ?trace_state ?attrs ?kind
+    with_thunk_and_finally tracer ?force_new_trace_id ?trace_state ?attrs ?kind
       ?trace_id ?parent ?links name cb
   in
 

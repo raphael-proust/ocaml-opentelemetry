@@ -37,7 +37,7 @@ let run () =
   Logs.app (fun m -> m "emit_logs: app log");
   let%lwt () =
     let tracer = T.Tracer.get_main () in
-    T.Tracer.with_ tracer ~kind:T.Span.Span_kind_producer "my_scope"
+    T.Tracer.with_ ~tracer ~kind:T.Span.Span_kind_producer "my_scope"
       (fun _scope ->
         Logs.info (fun m ->
             m ~tags:varied_tag_set

@@ -18,11 +18,11 @@ module Tracer = struct
   include Tracer
 
   (** Sync span guard *)
-  let with_ (self : t) ?force_new_trace_id ?trace_state ?attrs ?kind ?trace_id
-      ?parent ?links name (cb : Span.t -> 'a Lwt.t) : 'a Lwt.t =
+  let with_ ?(tracer = dynamic_main) ?force_new_trace_id ?trace_state ?attrs
+      ?kind ?trace_id ?parent ?links name (cb : Span.t -> 'a Lwt.t) : 'a Lwt.t =
     let thunk, finally =
-      with_thunk_and_finally self ?force_new_trace_id ?trace_state ?attrs ?kind
-        ?trace_id ?parent ?links name cb
+      with_thunk_and_finally tracer ?force_new_trace_id ?trace_state ?attrs
+        ?kind ?trace_id ?parent ?links name cb
     in
 
     try%lwt
