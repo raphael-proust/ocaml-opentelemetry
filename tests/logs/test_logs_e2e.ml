@@ -46,5 +46,7 @@ let tests (signal_batches : Client.Signal.t list) =
     signal_batches
 
 let () =
-  let signal_batches = Signal_gatherer.gather_signals ~port cmd in
+  let signal_batches =
+    Lwt_main.run (Signal_gatherer.gather_signals ~port cmd)
+  in
   tests signal_batches

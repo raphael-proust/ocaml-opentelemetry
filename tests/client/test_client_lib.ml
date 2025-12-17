@@ -11,7 +11,7 @@ let test_config_printing () =
     \ self_trace=false; url_traces=\"http://localhost:4318/v1/traces\";\n\
     \ url_metrics=\"http://localhost:4318/v1/metrics\";\n\
     \ url_logs=\"http://localhost:4318/v1/logs\"; headers=[]; batch_traces=400;\n\
-    \ batch_metrics=20; batch_logs=400; batch_timeout_ms=2000;\n\
+    \ batch_metrics=200; batch_logs=400; batch_timeout_ms=2000;\n\
     \ http_concurrency_level=None }"
   in
   check' string ~msg:"is rendered correctly" ~actual ~expected

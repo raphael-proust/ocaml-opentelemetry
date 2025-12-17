@@ -110,13 +110,14 @@ type params = {
   url: string;
   jobs: int;
   procs: int;
+  n_outer: int;
   batch_traces: int;
   batch_metrics: int;
   batch_logs: int;
   iterations: int;
 }
 
-let cmd exec params =
+let cmd exec params : string list =
   [
     exec;
     "-j";
@@ -125,6 +126,8 @@ let cmd exec params =
     string_of_int params.procs;
     "--url";
     params.url;
+    "-n";
+    string_of_int params.n_outer;
     "--iterations";
     string_of_int params.iterations;
     "--batch-traces";
@@ -151,21 +154,23 @@ let tests params signal_batches =
           ~msg:
             "number of occurrences should equal the configured jobs * the \
              configured processes"
-          ~expected:(params.jobs * params.procs)
+          ~expected:(params.jobs * params.procs * params.n_outer)
           ~actual:(count_spans_with_name "loop.outer" signals));
     test "loop.inner spans" (fun () ->
         Alcotest.(check' int)
           ~msg:
             "number of occurrences should equal the configured jobs * the  \
              configured iterations * configured processes"
-          ~expected:(params.jobs * params.iterations * params.procs)
+          ~expected:
+            (params.jobs * params.iterations * params.procs * params.n_outer)
           ~actual:(count_spans_with_name "loop.inner" signals));
     test "alloc spans" (fun () ->
         Alcotest.(check' int)
           ~msg:
             "number of occurrences should equal the configured jobs * the  \
              configured iterations * configured processes"
-          ~expected:(params.jobs * params.iterations * params.procs)
+          ~expected:
+            (params.jobs * params.iterations * params.procs * params.n_outer)
           ~actual:(count_spans_with_name "alloc" signals);
         Alcotest.(check' bool)
           ~msg:"should have 'done with alloc' event" ~expected:true
@@ -193,9 +198,10 @@ let tests params signal_batches =
     test "logs" (fun () ->
         Alcotest.(check' int)
           ~msg:
-            "should record jobs * iterations occurrences * configured \
+            "should record jobs * iterations occurrences * configured * n \
              processes of 'inner at n'"
-          ~expected:(params.jobs * params.iterations * params.procs)
+          ~expected:
+            (params.jobs * params.iterations * params.procs * params.n_outer)
           ~actual:
             (signals
             |> count_logs_with_body (function
@@ -205,16 +211,19 @@ let tests params signal_batches =
                  | _ -> false)));
   ]
 
-let run_tests ~port cmds =
+let run_tests ~port (cmds : _ list) : unit =
   let suites =
-    cmds
-    |> List.map (fun (exec, params) ->
+    let open Lwt.Syntax in
+    Lwt_main.run
+    @@ Lwt_list.map_s
+         (fun (exec, params) ->
            let cmd = cmd exec params in
-           let name = cmd |> String.concat " " in
-           let signal_batches = Signal_gatherer.gather_signals ~port cmd in
+           let name = Printf.sprintf "'test: %s'" (String.concat " " cmd) in
+           let* signal_batches = Signal_gatherer.gather_signals ~port cmd in
            (* Let server reset *)
-           Unix.sleep 1;
-           name, tests params signal_batches)
+           let* () = Lwt_unix.sleep 1. in
+           Lwt.return (name, tests params signal_batches))
+         cmds
   in
   let open Alcotest in
   run "Collector integration tests" suites
