@@ -5,7 +5,7 @@ type t = {
   clock: Clock.t;
 }
 
-let dummy : t = { emit = Emitter.dummy; clock = Clock.Main.dynamic_main }
+let dummy : t = { emit = Emitter.dummy; clock = Clock.ptime_clock }
 
 let[@inline] enabled (self : t) = Emitter.enabled self.emit
 

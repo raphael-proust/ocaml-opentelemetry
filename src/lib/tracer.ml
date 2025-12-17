@@ -19,7 +19,7 @@ type t = {
     https://opentelemetry.io/docs/specs/otel/trace/api/#tracer *)
 
 (** Dummy tracer, always disabled *)
-let dummy : t = { emit = Emitter.dummy; clock = Clock.Main.dynamic_main }
+let dummy : t = { emit = Emitter.dummy; clock = Clock.ptime_clock }
 
 let[@inline] enabled (self : t) = Emitter.enabled self.emit
 
@@ -50,8 +50,7 @@ let with_thunk_and_finally (self : t) ?(force_new_trace_id = false) ?trace_state
     | None, Some p -> Span.trace_id p
     | None, None -> Trace_id.create ()
   in
-  (* TODO: pass a clock in emitters *)
-  let start_time = Clock.now_main () in
+  let start_time = Clock.now self.clock in
   let span_id = Span_id.create () in
 
   let parent_id = Option.map Span.id parent in
@@ -62,7 +61,7 @@ let with_thunk_and_finally (self : t) ?(force_new_trace_id = false) ?trace_state
   in
   (* called once we're done, to emit a span *)
   let finally res =
-    let end_time = Clock.now_main () in
+    let end_time = Clock.now self.clock in
     Proto.Trace.span_set_end_time_unix_nano span end_time;
 
     (match Span.status span with

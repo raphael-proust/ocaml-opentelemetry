@@ -1,4 +1,3 @@
-open Lwt.Syntax
 include Opentelemetry
 
 module Main_exporter = struct
