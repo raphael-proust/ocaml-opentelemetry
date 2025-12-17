@@ -43,10 +43,11 @@ module Internal = struct
   type state = {
     tbl: span_begin Active_span_tbl.t;
     span_gen: int Atomic.t;
+    clock: Opentelemetry_core.Clock.t;
   }
 
-  let create_state () : state =
-    { tbl = Active_span_tbl.create (); span_gen = Atomic.make 0 }
+  let create_state ~clock () : state =
+    { tbl = Active_span_tbl.create (); span_gen = Atomic.make 0; clock }
 
   (* sanity check: otrace meta-map must be the same as hmap *)
   let () = ignore (fun (k : _ Hmap.key) : _ Otrace.Meta_map.key -> k)
@@ -82,11 +83,11 @@ module Internal = struct
       let open Opt_syntax in
       match explicit_parent with
       | Some p ->
-        let trace_id = Otrace.Meta_map.find k_trace_id p.meta in
+        let trace_id = Otrace.Meta_map.find OTEL.Trace_id.k_trace_id p.meta in
         let span_id =
           Otrace.Meta_map.find k_span_otrace p.meta >|= OTEL.Span.id
         in
-        let span_ctx = Otrace.Meta_map.find k_span_ctx p.meta in
+        let span_ctx = Otrace.Meta_map.find OTEL.Span_ctx.k_span_ctx p.meta in
         ( trace_id <?> (span_ctx >|= OTEL.Span_ctx.trace_id),
           span_id <?> (span_ctx >|= OTEL.Span_ctx.parent_id) )
       | None -> None, None
@@ -118,7 +119,7 @@ module Internal = struct
       :: data
     in
 
-    let start_time = Timestamp_ns.now_unix_ns () in
+    let start_time = Clock.now self.clock in
     let span : OTEL.Span.t =
       OTEL.Span.make ?parent:parent_id ~trace_id ~id:otel_id ~attrs name
         ~start_time ~end_time:start_time
@@ -144,17 +145,17 @@ module Internal = struct
     Active_span_tbl.add self.tbl otrace_span sb;
     sb
 
-  let exit_span_ { span } : OTEL.Span.t =
+  let exit_span_ self { span } : OTEL.Span.t =
     let open OTEL in
     if Span.is_not_dummy span then (
-      let end_time = Timestamp_ns.now_unix_ns () in
+      let end_time = Clock.now self.clock in
       Proto.Trace.span_set_end_time_unix_nano span end_time
     );
     span
 
   let exit_span' (self : state) otrace_id otel_span_begin =
     Active_span_tbl.remove self.tbl otrace_id;
-    exit_span_ otel_span_begin
+    exit_span_ self otel_span_begin
 
   (** Find the OTEL span corresponding to this Trace span *)
   let exit_span_from_id (self : state) otrace_id =
@@ -162,7 +163,7 @@ module Internal = struct
     | exception Not_found -> None
     | otel_span_begin ->
       Active_span_tbl.remove self.tbl otrace_id;
-      Some (exit_span_ otel_span_begin)
+      Some (exit_span_ self otel_span_begin)
 end
 
 module type COLLECTOR_ARG = sig
@@ -174,7 +175,7 @@ module Make_collector (A : COLLECTOR_ARG) = struct
 
   let exporter = A.exporter
 
-  let state = create_state ()
+  let state = create_state ~clock:exporter.clock ()
 
   (* NOTE: perf: it would be interesting to keep the "current (OTEL) span" in
     local storage/ambient-context, to accelerate most span-modifying
@@ -301,7 +302,10 @@ module Make_collector (A : COLLECTOR_ARG) = struct
     in
     let span_id = Opt_syntax.(span_id_from_parent <?> span_id_from_ambient) in
 
-    let log = OTEL.Log_record.make_str ?trace_id ?span_id msg in
+    let log =
+      let observed_time_unix_nano = OTEL.Clock.now exporter.clock in
+      OTEL.Log_record.make_str ~observed_time_unix_nano ?trace_id ?span_id msg
+    in
     OTEL.Exporter.send_logs exporter [ log ]
 
   let shutdown () = ()
