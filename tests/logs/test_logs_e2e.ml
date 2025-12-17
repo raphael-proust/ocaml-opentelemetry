@@ -11,6 +11,7 @@ let cmd = [ "emit_logs_cohttp"; "--url"; url ]
 
 let tests (signal_batches : Client.Signal.t list) =
   ignore signal_batches;
+  let cur_time = ref 0 in
   List.iter
     (fun (signal_batch : Client.Signal.t) ->
       match signal_batch with
@@ -24,8 +25,11 @@ let tests (signal_batches : Client.Signal.t list) =
                        List.map
                          (fun (lr : L.log_record) ->
                            let lr = L.copy_log_record lr in
-                           L.log_record_set_time_unix_nano lr 0L;
-                           L.log_record_set_observed_time_unix_nano lr 0L;
+                           let pseudo_time = Int64.of_int !cur_time in
+                           incr cur_time;
+                           L.log_record_set_time_unix_nano lr pseudo_time;
+                           L.log_record_set_observed_time_unix_nano lr
+                             pseudo_time;
                            lr)
                          sl.log_records
                      in
