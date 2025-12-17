@@ -3,8 +3,8 @@ open Opentelemetry_emitter
 
 (** [debug ?out ()] is an exporter that pretty-prints signals on [out].
     @param out the formatter into which to print, default [stderr]. *)
-let debug ?(clock = OTEL.Clock.Main.dynamic_main) ?(out = Format.err_formatter)
-    () : OTEL.Exporter.t =
+let debug ?(clock = OTEL.Clock.ptime_clock) ?(out = Format.err_formatter) () :
+    OTEL.Exporter.t =
   let open Proto in
   let active, trigger = Aswitch.create () in
   let ticker = Cb_set.create () in

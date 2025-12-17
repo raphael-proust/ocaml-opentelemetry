@@ -101,7 +101,7 @@ let dynamic_forward_to_main_exporter : Exporter.t =
   let shutdown () = () in
   {
     Exporter.active;
-    clock = Clock.Main.dynamic_main;
+    clock = Clock.ptime_clock;
     emit_metrics;
     emit_spans;
     emit_logs;
