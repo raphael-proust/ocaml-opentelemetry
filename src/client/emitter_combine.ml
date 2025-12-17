@@ -26,7 +26,7 @@ let combine_l ?(closing : closing_behavior = `Close_when_all_closed)
   in
   let enabled () = not (closed ()) in
   let emit x = if x <> [] then List.iter (fun e -> emit e x) es in
-  let tick ~now = List.iter (tick ~now) es in
+  let tick ~mtime = List.iter (tick ~mtime) es in
   let flush_and_close () = List.iter flush_and_close es in
   { closed; enabled; emit; tick; flush_and_close }
 

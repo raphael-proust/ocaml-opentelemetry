@@ -22,13 +22,14 @@ let combine_l (es : OTEL.Exporter.t list) : OTEL.Exporter.t =
     let active, trigger = Aswitch.create () in
     {
       active = (fun () -> active);
+      clock = (List.hd es).clock;
       emit_spans =
         Emitter_combine.combine_l (List.map (fun e -> e.emit_spans) es);
       emit_logs = Emitter_combine.combine_l (List.map (fun e -> e.emit_logs) es);
       emit_metrics =
         Emitter_combine.combine_l (List.map (fun e -> e.emit_metrics) es);
       on_tick = (fun f -> List.iter (fun e -> e.on_tick f) es);
-      tick = (fun () -> List.iter tick es);
+      tick = (fun () -> List.iter (fun e -> e.tick ()) es);
       shutdown = (fun () -> shutdown_l es ~trigger);
       self_metrics =
         (fun () -> List.fold_left (fun acc e -> e.self_metrics () @ acc) [] es);

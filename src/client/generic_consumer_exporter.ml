@@ -113,22 +113,19 @@ end = struct
     start_worker self;
     self
 
-  let self_metrics (self : state) : OTEL.Metrics.t list =
+  let self_metrics (self : state) ~clock : OTEL.Metrics.t list =
     let open OTEL.Metrics in
-    let now = Mtime_clock.now () in
+    let now = OTEL.Clock.now clock in
     [
       sum ~name:"otel_ocaml.export.batches_discarded_by_bounded_queue"
         ~is_monotonic:true
-        [
-          int ~now:(Mtime.to_uint64_ns now)
-            (Bounded_queue.Recv.num_discarded self.q);
-        ];
+        [ int ~now (Bounded_queue.Recv.num_discarded self.q) ];
     ]
 
   let to_consumer (self : state) : Consumer.t =
     let shutdown () = shutdown self in
     let tick () = tick self in
-    let self_metrics () = self_metrics self in
+    let self_metrics ~clock () = self_metrics self ~clock in
     { active = (fun () -> self.active); tick; shutdown; self_metrics }
 
   let consumer exporter : _ Consumer.Builder.t =

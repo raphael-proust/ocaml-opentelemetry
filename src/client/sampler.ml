@@ -37,7 +37,7 @@ let wrap_emitter (self : t) (e : _ Emitter.t) : _ Emitter.t =
   let enabled () = e.enabled () in
   let closed () = Emitter.closed e in
   let flush_and_close () = Emitter.flush_and_close e in
-  let tick ~now = Emitter.tick e ~now in
+  let tick ~mtime = Emitter.tick e ~mtime in
 
   let emit l =
     if l <> [] && e.enabled () then (

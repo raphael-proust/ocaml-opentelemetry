@@ -14,8 +14,9 @@ module Proto = Opentelemetry_proto
 
     This is mostly useful internally. Users should not need to touch it. *)
 
-(** {2 Timestamps} *)
+(** {2 Time} *)
 
+module Clock = Clock
 module Timestamp_ns = Timestamp_ns
 
 (** {2 Export signals to some external collector.} *)

@@ -12,6 +12,7 @@ open Opentelemetry_emitter
 type t = {
   active: unit -> Aswitch.t;
       (** Is the exporer currently active? After shutdown this is turned off. *)
+  clock: Clock.t;
   emit_spans: Proto.Trace.span Emitter.t;
   emit_metrics: Proto.Metrics.metric Emitter.t;
   emit_logs: Proto.Logs.log_record Emitter.t;
@@ -34,6 +35,7 @@ let dummy () : t =
   let active, trigger = Aswitch.create () in
   {
     active = (fun () -> active);
+    clock = Clock.unix;
     emit_spans = Emitter.dummy;
     emit_metrics = Emitter.dummy;
     emit_logs = Emitter.dummy;
@@ -56,12 +58,11 @@ let[@inline] on_tick (self : t) f = self.on_tick f
 
 (** Do background work. Call this regularly if the collector doesn't already
     have a ticker thread or internal timer. *)
-let tick (self : t) =
+let tick ~mtime (self : t) =
   (* make sure emitters get the chance to check timeouts, flush, etc. *)
-  let now = Mtime_clock.now () in
-  Emitter.tick ~now self.emit_spans;
-  Emitter.tick ~now self.emit_metrics;
-  Emitter.tick ~now self.emit_logs;
+  Emitter.tick ~mtime self.emit_spans;
+  Emitter.tick ~mtime self.emit_metrics;
+  Emitter.tick ~mtime self.emit_logs;
 
   (* call the callbacks *)
   self.tick ();

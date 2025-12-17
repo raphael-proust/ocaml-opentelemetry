@@ -111,7 +111,7 @@ module Send = struct
     let closed () = closed self in
     let enabled () = not (closed ()) in
     let emit x = if x <> [] then push self x in
-    let tick ~now:_ = () in
+    let tick ~mtime:_ = () in
 
     (* NOTE: we cannot actually flush, only close. Emptying the queue is
      fundamentally asynchronous because it's done by consumers *)

@@ -10,7 +10,8 @@ type t = {
   tick: unit -> unit;
       (** Regularly called, eg to emit metrics, check timeouts, etc. Must be
           thread safe. *)
-  self_metrics: unit -> OTEL.Metrics.t list;  (** Self observing metrics *)
+  self_metrics: clock:OTEL.Clock.t -> unit -> OTEL.Metrics.t list;
+      (** Self observing metrics *)
 }
 (** A consumer for signals of type ['a] *)
 
@@ -20,7 +21,7 @@ let[@inline] active (self : t) : Aswitch.t = self.active ()
 
 let[@inline] shutdown (self : t) : unit = self.shutdown ()
 
-let[@inline] self_metrics self : _ list = self.self_metrics ()
+let[@inline] self_metrics ~clock self : _ list = self.self_metrics ~clock ()
 
 (** [on_stop e f] calls [f()] when [e] stops, or now if it's already stopped *)
 let on_stop self f = Aswitch.on_turn_off (self.active ()) f

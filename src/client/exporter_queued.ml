@@ -9,18 +9,18 @@ module BQ_emitters = struct
      The bounded queue is a shared resource. *)
 
   let logs_emitter_of_bq (q : OTEL.Any_signal_l.t Bounded_queue.Send.t) :
-      OTEL.Logger.t =
+      _ OTEL.Emitter.t =
     Bounded_queue.Send.to_emitter q ~close_queue_on_close:false
     |> Opentelemetry_emitter.Emitter.flat_map OTEL.Any_signal_l.of_logs_or_empty
 
   let spans_emitter_of_bq (q : OTEL.Any_signal_l.t Bounded_queue.Send.t) :
-      OTEL.Tracer.t =
+      _ OTEL.Emitter.t =
     Bounded_queue.Send.to_emitter q ~close_queue_on_close:false
     |> Opentelemetry_emitter.Emitter.flat_map
          OTEL.Any_signal_l.of_spans_or_empty
 
   let metrics_emitter_of_bq (q : OTEL.Any_signal_l.t Bounded_queue.Send.t) :
-      OTEL.Metrics_emitter.t =
+      _ OTEL.Emitter.t =
     Bounded_queue.Send.to_emitter q ~close_queue_on_close:false
     |> Opentelemetry_emitter.Emitter.flat_map
          OTEL.Any_signal_l.of_metrics_or_empty
@@ -32,7 +32,7 @@ end
     bounded queue; while the consumer takes them from the queue to forward them
     somewhere else, store them, etc.
     @param resource_attributes attributes added to every "resource" batch *)
-let create ~(q : OTEL.Any_signal_l.t Bounded_queue.t)
+let create ~clock ~(q : OTEL.Any_signal_l.t Bounded_queue.t)
     ~(consumer : Consumer.any_signal_l_builder) () : OTEL.Exporter.t =
   let open Opentelemetry_emitter in
   let shutdown_started = Atomic.make false in
@@ -48,7 +48,7 @@ let create ~(q : OTEL.Any_signal_l.t Bounded_queue.t)
   let on_tick f = Cb_set.register tick_set f in
 
   let self_metrics () : _ list =
-    let now = OTEL.Timestamp_ns.now_unix_ns () in
+    let now = OTEL.Clock.now clock in
     let m_size =
       OTEL.Metrics.gauge ~name:"otel.sdk.exporter.queue.size"
         [ OTEL.Metrics.int ~now (Bounded_queue.Recv.size q.recv) ]
@@ -60,7 +60,7 @@ let create ~(q : OTEL.Any_signal_l.t Bounded_queue.t)
         ~name:"otel_ocaml.exporter_queue.discarded"
         [ OTEL.Metrics.int ~now (Bounded_queue.Recv.num_discarded q.recv) ]
     in
-    m_size :: m_cap :: m_discarded :: Consumer.self_metrics consumer
+    m_size :: m_cap :: m_discarded :: Consumer.self_metrics consumer ~clock
   in
 
   let shutdown () =
@@ -86,6 +86,7 @@ let create ~(q : OTEL.Any_signal_l.t Bounded_queue.t)
   let active () = active in
   {
     active;
+    clock;
     emit_logs;
     emit_metrics;
     emit_spans;

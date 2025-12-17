@@ -204,9 +204,9 @@ end = struct
 
     self
 
-  let self_metrics (self : state) : OTEL.Metrics.t list =
+  let self_metrics ~clock (self : state) : OTEL.Metrics.t list =
     let open OTEL.Metrics in
-    let now = OTEL.Timestamp_ns.now_unix_ns () in
+    let now = OTEL.Clock.now clock in
     let attrs = [ "otel.component.name", `String "otel_ocaml" ] in
     [
       sum ~name:"otel.sdk.exporter.errors" ~is_monotonic:true
@@ -220,7 +220,7 @@ end = struct
   let to_consumer (self : state) : Consumer.t =
     let shutdown () = shutdown self in
     let tick () = tick self in
-    let self_metrics () = self_metrics self in
+    let self_metrics ~clock () = self_metrics self ~clock in
     { active = (fun () -> self.active); tick; shutdown; self_metrics }
 
   let consumer ~sender_config ~n_workers ~ticker_task () :
