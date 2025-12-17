@@ -11,11 +11,15 @@
   Opentelemetry_atomic)
  (optional) ; lwt
  (libraries
-  opentelemetry.core
   opentelemetry.util
   opentelemetry.atomic
   opentelemetry.emitter
-  opentelemetry-client
-  lwt
+  (re_export opentelemetry.core)
+  (re_export opentelemetry)
+  (re_export opentelemetry-client)
+  (re_export lwt)
+  threads
+  mtime
+  mtime.clock.os
   lwt.unix)
  (synopsis "Lwt-specific helpers for opentelemetry-client"))

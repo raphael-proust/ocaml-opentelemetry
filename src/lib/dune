@@ -14,12 +14,12 @@
   Opentelemetry_core.Common_)
  (libraries
   (re_export opentelemetry.core)
-  opentelemetry.proto
+  (re_export opentelemetry.proto)
   (re_export opentelemetry.util)
   (re_export opentelemetry.ambient-context)
   (re_export opentelemetry.atomic)
-  ptime
-  ptime.clock.os
+  mtime
+  mtime.clock.os
   pbrt
   threads
   hmap))

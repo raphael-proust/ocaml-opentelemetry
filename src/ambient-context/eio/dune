@@ -4,4 +4,8 @@
  (synopsis
   "Storage backend for ambient-context using Eio's fibre-local storage")
  (optional) ; eio
- (libraries eio hmap opentelemetry.ambient-context.core))
+ (libraries
+  (re_export eio)
+  (re_export eio.core)
+  hmap
+  (re_export opentelemetry.ambient-context.core)))

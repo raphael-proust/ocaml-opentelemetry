@@ -5,14 +5,17 @@
  (preprocess
   (pps lwt_ppx))
  (libraries
-  opentelemetry
+  (re_export opentelemetry)
+  opentelemetry.ptime
   opentelemetry.atomic
-  opentelemetry-client
-  opentelemetry-client.lwt
+  (re_export opentelemetry-client)
+  (re_export opentelemetry-client.lwt)
+  threads
   pbrt
   mtime
   mtime.clock.os
-  ezcurl-lwt
-  ezcurl.core
-  lwt
-  lwt.unix))
+  (re_export curl)
+  (re_export ezcurl-lwt)
+  (re_export ezcurl.core)
+  (re_export lwt)
+  (re_export lwt.unix)))
