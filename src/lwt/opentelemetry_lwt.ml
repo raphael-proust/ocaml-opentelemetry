@@ -6,7 +6,7 @@ module Main_exporter = struct
 
   let remove () : unit Lwt.t =
     let p, resolve = Lwt.wait () in
-    Aswitch.on_turn_off (active ()) (fun () -> Lwt.wakeup_later resolve ());
+    remove () ~on_done:(fun () -> Lwt.wakeup_later resolve ());
     p
 end
 
