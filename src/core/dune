@@ -10,6 +10,7 @@
   (re_export opentelemetry.emitter)
   pbrt
   threads
-  unix
+  ptime
+  ptime.clock.os
   mtime
   hmap))
