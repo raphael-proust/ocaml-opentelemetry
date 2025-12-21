@@ -45,5 +45,5 @@ end
 
 type any_signal_l_builder = OTEL.Any_signal_l.t Builder.t
 
-type any_resource_builder = Any_resource.t Builder.t
+type resource_signal_builder = Resource_signal.t Builder.t
 (** The type that's useful for HTTP backends *)

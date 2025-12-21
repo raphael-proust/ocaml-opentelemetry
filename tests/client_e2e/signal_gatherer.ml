@@ -1,7 +1,7 @@
 (* A runs tests against a OTel-instrumented program  *)
 
 module Client = Opentelemetry_client
-module Signal = Client.Signal
+module Signal = Client.Resource_signal
 open Lwt.Syntax
 
 let debug =

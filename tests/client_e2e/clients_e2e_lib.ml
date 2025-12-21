@@ -6,13 +6,13 @@ module Client = Opentelemetry_client
 module Proto = Opentelemetry.Proto
 open Containers
 
-let batch_size : Client.Signal.t -> int = function
+let batch_size : Client.Resource_signal.t -> int = function
   | Traces ts -> List.length ts
   | Logs ls -> List.length ls
   | Metrics ms -> List.length ms
 
-let avg_batch_size (p : Client.Signal.t -> bool)
-    (batches : Client.Signal.t list) : int =
+let avg_batch_size (p : Client.Resource_signal.t -> bool)
+    (batches : Client.Resource_signal.t list) : int =
   let sum =
     List.fold_left
       (fun acc b ->
@@ -24,7 +24,7 @@ let avg_batch_size (p : Client.Signal.t -> bool)
   in
   sum / List.length batches
 
-let signals_from_batch (signal_batch : Client.Signal.t) =
+let signals_from_batch (signal_batch : Client.Resource_signal.t) =
   match signal_batch with
   | Traces ts -> List.map (fun t -> `Trace t) ts
   | Logs ls -> List.map (fun l -> `Log l) ls

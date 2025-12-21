@@ -2,7 +2,7 @@
     server that can receive the signals make them available for inspection. *)
 
 val gather_signals :
-  ?port:int -> string list -> Opentelemetry_client.Signal.t list Lwt.t
+  ?port:int -> string list -> Opentelemetry_client.Resource_signal.t list Lwt.t
 (** [gather_signals program_to_test] is a list of all the signals emitted by the
     [program_to_test], which the server was able to record. This function
     assumes that the program to test will be sending its signals to the

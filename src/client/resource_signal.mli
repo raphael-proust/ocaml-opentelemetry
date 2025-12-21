@@ -1,5 +1,8 @@
 (** Constructing and managing OTel
-    {{:https://opentelemetry.io/docs/concepts/signals/} signals} *)
+    {{:https://opentelemetry.io/docs/concepts/signals/} signals} at the resource
+    (batch) level *)
+
+open Common_
 
 (** The type of signals
 
@@ -10,6 +13,45 @@ type t =
   | Traces of Opentelemetry_proto.Trace.resource_spans list
   | Metrics of Opentelemetry_proto.Metrics.resource_metrics list
   | Logs of Opentelemetry_proto.Logs.resource_logs list
+
+val of_logs :
+  ?service_name:string ->
+  ?attrs:OTEL.Key_value.t list ->
+  Proto.Logs.log_record list ->
+  t
+
+val of_logs_or_empty :
+  ?service_name:string ->
+  ?attrs:OTEL.Key_value.t list ->
+  Proto.Logs.log_record list ->
+  t list
+
+val of_spans :
+  ?service_name:string -> ?attrs:OTEL.Key_value.t list -> OTEL.Span.t list -> t
+
+val of_spans_or_empty :
+  ?service_name:string ->
+  ?attrs:OTEL.Key_value.t list ->
+  OTEL.Span.t list ->
+  t list
+
+val of_metrics :
+  ?service_name:string ->
+  ?attrs:OTEL.Key_value.t list ->
+  Proto.Metrics.metric list ->
+  t
+
+val of_metrics_or_empty :
+  ?service_name:string ->
+  ?attrs:OTEL.Key_value.t list ->
+  Proto.Metrics.metric list ->
+  t list
+
+val of_signal_l :
+  ?service_name:string ->
+  ?attrs:OTEL.Key_value.t list ->
+  OTEL.Any_signal_l.t ->
+  t
 
 val to_traces : t -> Opentelemetry_proto.Trace.resource_spans list option
 
@@ -49,7 +91,7 @@ module Encode : sig
 
       @param encoder provide an encoder state to reuse *)
 
-  val any : ?encoder:Pbrt.Encoder.t -> Any_resource.t -> string
+  val any : ?encoder:Pbrt.Encoder.t -> t -> string
 end
 
 (** Decode signals from protobuf encoded strings, received over the wire *)

@@ -1,16 +1,39 @@
+open Common_
 module Trace_service = Opentelemetry.Proto.Trace_service
 module Metrics_service = Opentelemetry.Proto.Metrics_service
 module Logs_service = Opentelemetry.Proto.Logs_service
 module Span = Opentelemetry.Span
 
-let ( let@ ) = ( @@ )
-
-module Proto = Opentelemetry.Proto
+open struct
+  let of_x_or_empty ?service_name ?attrs ~f l =
+    if l = [] then
+      []
+    else
+      [ f ?service_name ?attrs l ]
+end
 
 type t =
   | Traces of Proto.Trace.resource_spans list
   | Metrics of Proto.Metrics.resource_metrics list
   | Logs of Proto.Logs.resource_logs list
+
+let of_logs ?service_name ?attrs logs : t =
+  Logs [ Util_resources.make_resource_logs ?service_name ?attrs logs ]
+
+let of_logs_or_empty ?service_name ?attrs logs =
+  of_x_or_empty ?service_name ?attrs ~f:of_logs logs
+
+let of_spans ?service_name ?attrs spans : t =
+  Traces [ Util_resources.make_resource_spans ?service_name ?attrs spans ]
+
+let of_spans_or_empty ?service_name ?attrs spans =
+  of_x_or_empty ?service_name ?attrs ~f:of_spans spans
+
+let of_metrics ?service_name ?attrs m : t =
+  Metrics [ Util_resources.make_resource_metrics ?service_name ?attrs m ]
+
+let of_metrics_or_empty ?service_name ?attrs ms =
+  of_x_or_empty ?service_name ?attrs ~f:of_metrics ms
 
 let to_traces = function
   | Traces xs -> Some xs
@@ -35,6 +58,12 @@ let is_metrics = function
 let is_logs = function
   | Logs _ -> true
   | _ -> false
+
+let of_signal_l ?service_name ?attrs (s : OTEL.Any_signal_l.t) : t =
+  match s with
+  | Logs logs -> of_logs ?service_name ?attrs logs
+  | Spans sp -> of_spans ?service_name ?attrs sp
+  | Metrics ms -> of_metrics ?service_name ?attrs ms
 
 module Encode = struct
   let resource_to_string ~encoder ~ctor ~enc resource : string =
@@ -78,11 +107,11 @@ module Encode = struct
         Trace_service.make_export_trace_service_request ~resource_spans:r ())
       ~enc:Trace_service.encode_pb_export_trace_service_request
 
-  let any ?encoder (r : Any_resource.t) : string =
+  let any ?encoder (r : t) : string =
     match r with
-    | R_logs l -> logs ?encoder l
-    | R_spans sp -> traces ?encoder sp
-    | R_metrics ms -> metrics ?encoder ms
+    | Logs l -> logs ?encoder l
+    | Traces sp -> traces ?encoder sp
+    | Metrics ms -> metrics ?encoder ms
 end
 
 module Decode = struct

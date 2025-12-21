@@ -45,6 +45,8 @@ let k_span_ctx = Span_ctx.k_span_ctx
 (** {2 Attributes and conventions} *)
 
 module Conventions = Conventions
+module Value = Value
+module Key_value = Key_value
 
 type value = Value.t
 (** A value in a key/value attribute *)
