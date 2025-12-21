@@ -9,11 +9,11 @@ let url = Printf.sprintf "http://localhost:%d" port
 
 let cmd = [ "emit_logs_cohttp"; "--url"; url ]
 
-let tests (signal_batches : Client.Signal.t list) =
+let tests (signal_batches : Client.Resource_signal.t list) =
   ignore signal_batches;
   let cur_time = ref 0 in
   List.iter
-    (fun (signal_batch : Client.Signal.t) ->
+    (fun (signal_batch : Client.Resource_signal.t) ->
       match signal_batch with
       | Logs ls ->
         ls (* Mask out the times so tests don't change in between runs *)

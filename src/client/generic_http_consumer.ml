@@ -61,14 +61,14 @@ end = struct
 
     let send (self : t) (sigs : OTEL.Any_signal_l.t) : (unit, error) result IO.t
         =
-      let res = Any_resource.of_signal_l sigs in
+      let res = Resource_signal.of_signal_l sigs in
       let url =
         match res with
-        | R_logs _ -> self.config.url_logs
-        | R_spans _ -> self.config.url_traces
-        | R_metrics _ -> self.config.url_metrics
+        | Logs _ -> self.config.url_logs
+        | Traces _ -> self.config.url_traces
+        | Metrics _ -> self.config.url_metrics
       in
-      let data = Signal.Encode.any ~encoder:self.encoder res in
+      let data = Resource_signal.Encode.any ~encoder:self.encoder res in
       Httpc.send self.http ~url ~decode:(`Ret ()) data
   end
 
