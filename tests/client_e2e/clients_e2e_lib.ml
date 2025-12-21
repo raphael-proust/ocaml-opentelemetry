@@ -32,11 +32,12 @@ let signals_from_batch (signal_batch : Client.Resource_signal.t) =
 
 let filter_map_spans f signals =
   signals
-  |> List.filter_map (function
-       | `Log _ | `Metric _ -> None
+  |> List.concat_map (function
+       | `Log _ | `Metric _ -> []
        | `Trace (r : Proto.Trace.resource_spans) ->
          r.scope_spans
-         |> List.find_map (fun ss -> ss.Proto.Trace.spans |> List.find_map f))
+         |> List.concat_map (fun ss ->
+                ss.Proto.Trace.spans |> List.filter_map f))
 
 let count_spans_with_name name signals =
   signals
@@ -49,12 +50,12 @@ let count_spans_with_name name signals =
 
 let filter_map_metrics f signals =
   signals
-  |> List.filter_map (function
-       | `Log _ | `Trace _ -> None
+  |> List.concat_map (function
+       | `Log _ | `Trace _ -> []
        | `Metric (r : Proto.Metrics.resource_metrics) ->
          r.scope_metrics
-         |> List.find_map (fun ss ->
-                ss.Proto.Metrics.metrics |> List.find_map f))
+         |> List.concat_map (fun ss ->
+                ss.Proto.Metrics.metrics |> List.filter_map f))
 
 let count_metrics_with_name name signals =
   signals
@@ -90,12 +91,12 @@ let get_metric_values name signals =
 
 let filter_map_logs (f : Proto.Logs.log_record -> 'a option) signals : 'a list =
   signals
-  |> List.filter_map (function
-       | `Metric _ | `Trace _ -> None
+  |> List.concat_map (function
+       | `Metric _ | `Trace _ -> []
        | `Log (r : Proto.Logs.resource_logs) ->
          r.scope_logs
-         |> List.find_map (fun ss ->
-                ss.Proto.Logs.log_records |> List.find_map f))
+         |> List.concat_map (fun ss ->
+                ss.Proto.Logs.log_records |> List.filter_map f))
 
 let count_logs_with_body p signals =
   signals
