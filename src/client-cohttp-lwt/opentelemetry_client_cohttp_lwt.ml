@@ -129,7 +129,12 @@ let setup ?config ?(enable = true) () = if enable then setup_ ?config ()
 
 let remove_exporter () : unit Lwt.t =
   let done_fut, done_u = Lwt.wait () in
-  Main_exporter.remove ~on_done:(fun () -> Lwt.wakeup_later done_u ()) ();
+  (* Printf.eprintf "otel.client.cohttp-lwt: removing…\n%!"; *)
+  Main_exporter.remove
+    ~on_done:(fun () ->
+      (* Printf.eprintf "otel.client.cohttp-lwt: done removing\n%!"; *)
+      Lwt.wakeup_later done_u ())
+    ();
   done_fut
 
 let remove_backend = remove_exporter
