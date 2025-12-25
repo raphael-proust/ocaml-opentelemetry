@@ -23,9 +23,9 @@ let stress_alloc_ = ref true
 let num_tr = Atomic.make 0
 
 let run_job job_id : unit Lwt.t =
-  let switch = T.Main_exporter.active () in
   let i = ref 0 in
-  while%lwt T.Aswitch.is_on switch && !i < !n do
+  while%lwt T.Aswitch.is_on (T.Main_exporter.active ()) && !i < !n do
+    (* Printf.eprintf "test: run outer loop job_id=%d i=%d\n%!" job_id !i; *)
     let@ scope =
       Atomic.incr num_tr;
       T.Tracer.with_ ~kind:T.Span.Span_kind_producer "loop.outer"
@@ -36,6 +36,7 @@ let run_job job_id : unit Lwt.t =
 
     for%lwt j = 1 to !iterations do
       (* parent scope is found via thread local storage *)
+      (* Printf.eprintf "test: run inner loop job_id=%d i=%d j=%d\n%!" job_id !i j; *)
       let@ span =
         Atomic.incr num_tr;
         T.Tracer.with_ ~parent:scope ~kind:T.Span.Span_kind_internal
@@ -48,29 +49,37 @@ let run_job job_id : unit Lwt.t =
 
       T.Logger.logf ~trace_id:(T.Span.trace_id span) ~span_id:(T.Span.id span)
         ~severity:Severity_number_info (fun k -> k "inner at %d" j);
-
       try%lwt
         Atomic.incr num_tr;
-        let@ scope =
-          T.Tracer.with_ ~kind:T.Span.Span_kind_internal ~parent:span "alloc"
-        in
         (* allocate some stuff *)
-        if !stress_alloc_ then (
-          let _arr = Sys.opaque_identity @@ Array.make (25 * 25551) 42.0 in
-          ignore _arr
-        );
+        let%lwt () =
+          if !stress_alloc_ then (
+            let@ scope =
+              T.Tracer.with_ ~kind:T.Span.Span_kind_internal ~parent:span
+                "alloc"
+            in
+            let _arr = Sys.opaque_identity @@ Array.make (25 * 25551) 42.0 in
+            ignore _arr;
+            T.Span.add_event scope (T.Event.make "done with alloc");
+            Lwt.return ()
+          ) else
+            Lwt.return ()
+        in
 
         let* () = Lwt_unix.sleep !sleep_inner in
         Atomic.incr num_sleep;
 
         (* simulate a failure *)
-        if j = 4 && !i mod 13 = 0 then failwith "oh no";
-
-        T.Span.add_event scope (T.Event.make "done with alloc");
-        Lwt.return ()
+        if j = 4 && !i mod 13 = 0 then
+          Lwt.fail (Failure "oh no")
+        else
+          Lwt.return ()
       with Failure _ -> Lwt.return ()
     done
   done
+(* >>= fun () ->
+   Printf.eprintf "test: job done\n%!"; 
+  Lwt.return ()*)
 
 let run () : unit Lwt.t =
   T.Gc_metrics.setup_on_main_exporter ();
@@ -86,9 +95,10 @@ let run () : unit Lwt.t =
               ])));
 
   let n_jobs = max 1 !n_jobs in
-  Printf.printf "run %d jobs\n%!" n_jobs;
+  (* Printf.printf "run %d jobs\n%!" n_jobs; *)
 
   let jobs = List.init n_jobs run_job in
+  (* Printf.eprintf "test: joining jobs\n%!"; *)
   Lwt.join jobs
 
 let () =
@@ -101,6 +111,7 @@ let () =
   let batch_traces = ref 400 in
   let batch_metrics = ref 3 in
   let batch_logs = ref 400 in
+  let self_trace = ref true in
   let url = ref None in
   let n_procs = ref 1 in
   let opts =
@@ -124,6 +135,7 @@ let () =
         " the number of inner iterations to run" );
       "-j", Arg.Set_int n_jobs, " number of parallel jobs";
       "-n", Arg.Set_int n, " number of outer iterations (default ∞)";
+      "--self-trace", Arg.Bool (( := ) self_trace), " self tracing";
       "--procs", Arg.Set_int n_procs, " number of processes (stub)";
     ]
     |> Arg.align
@@ -144,6 +156,7 @@ let () =
   in
   let config =
     Opentelemetry_client_cohttp_lwt.Config.make ~debug:!debug ?url:!url
+      ~self_trace:!self_trace
       ~batch_traces:(some_if_nzero batch_traces)
       ~batch_metrics:(some_if_nzero batch_metrics)
       ~batch_logs:(some_if_nzero batch_logs) ()
