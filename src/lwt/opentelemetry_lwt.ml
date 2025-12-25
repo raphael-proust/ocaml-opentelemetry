@@ -25,23 +25,29 @@ module Tracer = struct
   let with_ (type a) ?(tracer = dynamic_main) ?force_new_trace_id ?trace_state
       ?attrs ?kind ?trace_id ?parent ?links name (cb : Span.t -> a Lwt.t) :
       a Lwt.t =
+    let open Lwt.Syntax in
     let thunk, finally =
       with_thunk_and_finally tracer ?force_new_trace_id ?trace_state ?attrs
         ?kind ?trace_id ?parent ?links name cb
     in
 
-    match thunk () with
-    | exception exn ->
-      let bt = Printexc.get_raw_backtrace () in
-      finally (Error (exn, bt));
-      Printexc.raise_with_backtrace exn bt
-    | promise ->
-      Lwt.on_any promise
-        (fun _ -> finally (Ok ()))
+    let* r =
+      Lwt.catch
+        (fun () ->
+          let+ res = thunk () in
+          Ok res)
         (fun exn ->
           let bt = Printexc.get_raw_backtrace () in
-          finally (Error (exn, bt)));
-      promise
+          Lwt.return (Error (exn, bt)))
+    in
+
+    match r with
+    | Ok r ->
+      finally (Ok ());
+      Lwt.return r
+    | Error (exn, bt) ->
+      finally (Error (exn, bt));
+      Lwt.fail exn
 end
 
 module Trace = Tracer [@@deprecated "use Tracer"]
