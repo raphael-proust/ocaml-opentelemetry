@@ -165,6 +165,7 @@ let wrap_emitter (self : _ t) (e : _ Emitter.t) : _ Emitter.t =
 
   let emit l =
     if l <> [] && not (Atomic.get closed_here) then (
+      (* Printf.eprintf "otel.batch.add %d items\n%!" (List.length l); *)
       push' self l;
 
       (* we only check for size here, not for timeout. The [tick] function is
