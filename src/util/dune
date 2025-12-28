@@ -5,7 +5,7 @@
  (libraries
   (re_export opentelemetry.atomic)
   ptime
-  threads
-  threads.posix
+  (re_export threads)
+  (re_export threads.posix)
   opentelemetry.domain)
  (synopsis "Basic utilities for opentelemetry"))
