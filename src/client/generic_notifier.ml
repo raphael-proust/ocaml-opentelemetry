@@ -1,3 +1,5 @@
+(** Generic notifier (used to signal when a bounded queue is empty) *)
+
 module type IO = Generic_io.S
 
 module type S = sig

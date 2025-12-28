@@ -1,4 +1,8 @@
-(** Add batching to emitters *)
+(** Add batching to the emitters of an exporter.
+
+    The exporter has multiple emitters (one per signal type), this can add
+    batching on top of each of them (so that they emit less frequent, larger
+    batches of signals, amortizing the per-signal cost). *)
 
 open Common_
 

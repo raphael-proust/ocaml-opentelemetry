@@ -1,4 +1,5 @@
-(** Mini tracing module (disabled if [config.self_trace=false]) *)
+(** Mini tracing module for OTEL itself (disabled if [config.self_trace=false])
+*)
 
 open Common_
 

@@ -1,3 +1,5 @@
+(** Error that can occur during export *)
+
 type t =
   [ `Status of int * Opentelemetry.Proto.Status.status
   | `Failure of string

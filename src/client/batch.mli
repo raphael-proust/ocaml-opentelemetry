@@ -1,4 +1,4 @@
-(** A thread-safe batch of resources, to be sent together when ready . *)
+(** A thread-safe batch of resources, to be sent together when ready. *)
 
 type 'a t
 

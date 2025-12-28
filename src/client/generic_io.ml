@@ -1,4 +1,7 @@
-(** Generic IO *)
+(** Generic IO monad.
+
+    This factors out some logic between various concurrency frameworks. *)
+
 module type S = sig
   type 'a t
 

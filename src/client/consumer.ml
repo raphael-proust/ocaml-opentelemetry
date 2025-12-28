@@ -1,4 +1,4 @@
-(** Consumer that accepts items from a bounded queue *)
+(** Consumer that accepts items from a bounded queue and processes them. *)
 
 open Common_
 

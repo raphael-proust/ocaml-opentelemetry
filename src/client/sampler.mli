@@ -1,4 +1,4 @@
-(** Basic random sampling *)
+(** Basic random sampling. *)
 
 type t
 
@@ -16,10 +16,12 @@ val accept : t -> bool
 val proba_accept : t -> float
 
 val actual_rate : t -> float
-(** The ratio of signals we actually accepted so far *)
+(** The ratio of signals we actually accepted so far. This should asymptotically
+    be equal to {!proba_accept} if the random generator is good. *)
 
 open Opentelemetry_emitter
 
 val wrap_emitter : t -> 'a Emitter.t -> 'a Emitter.t
 (** [wrap_emitter sampler e] is a new emitter that uses the [sampler] on each
-    individual signal before passing them to [e]. *)
+    individual signal before passing them to [e]. This means only [proba_accept]
+    of the signals will actually be emitted. *)

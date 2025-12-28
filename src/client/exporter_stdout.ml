@@ -1,4 +1,4 @@
-(** A simple exporter that prints on stdout *)
+(** A simple exporter that prints on stdout. *)
 
 open Common_
 open Opentelemetry_emitter

@@ -1,3 +1,8 @@
+(** Basic debug exporter, prints signals on stdout/stderr/...
+
+    As the name says, it's not intended for production but as a quick way to
+    export signals and eyeball them. *)
+
 open Common_
 open Opentelemetry_emitter
 

@@ -1,3 +1,5 @@
+(** Combine multiple exporters into one *)
+
 open Common_
 open Opentelemetry_atomic
 

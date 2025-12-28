@@ -1,4 +1,4 @@
-(** Combine multiple emitters into one *)
+(** Combine multiple emitters into one. *)
 
 open Opentelemetry_emitter.Emitter
 

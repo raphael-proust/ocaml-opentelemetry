@@ -1,4 +1,11 @@
-(** Build an exporter from a queue and a consumer *)
+(** Build an exporter from a queue and a consumer.
+
+    The exporter will send signals into the queue (possibly dropping them if the
+    queue is full), and the consumer is responsible for actually exporting the
+    signals it reads from the other end of the queue.
+
+    At shutdown time, the queue is closed for writing, but only once it's empty
+    will the consumer properly shutdown. *)
 
 open Common_
 module BQ = Bounded_queue
