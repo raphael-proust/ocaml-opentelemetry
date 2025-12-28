@@ -161,6 +161,8 @@
   (odoc :with-doc)
   (lwt
    (>= "5.3"))
+  (cohttp
+   (>= "6.0.0"))
   (cohttp-lwt
    (>= "6.0.0"))
   (alcotest :with-test))
