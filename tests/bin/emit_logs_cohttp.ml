@@ -69,6 +69,7 @@ let () =
   Sys.catch_break true;
   T.Globals.service_name := "t1";
   T.Globals.service_namespace := Some "ocaml-otel.test";
+  T.Globals.instrumentation_runtime_version := "<fixed>";
 
   let debug = ref false in
   let batch_traces = ref 400 in
