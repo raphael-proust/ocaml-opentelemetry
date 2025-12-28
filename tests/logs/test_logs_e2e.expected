@@ -19,7 +19,7 @@
     [{ scope =
          Some(
            { name = "ocaml-otel";
-             version = "<fixed>";
+             version = "%%VERSION_NUM%%";
              attributes = [];
              dropped_attributes_count = 0 (* absent *);
            });

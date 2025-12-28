@@ -134,7 +134,14 @@ let run ?(port = default_port) () : _ Lwt.t =
       Lwt_stream.iter_s
         (fun s ->
           let open Lwt.Syntax in
-          let* () = Lwt_io.printl (Format.asprintf "%a" Signal.Pp.pp s) in
+          let printed = Format.asprintf "%a" Signal.Pp.pp s in
+
+          (* redact current ocaml version, for expect tests *)
+          let printed =
+            CCString.replace ~which:`All ~sub:Sys.ocaml_version
+              ~by:"ocaml_version" printed
+          in
+          let* () = Lwt_io.printl printed in
           Lwt_io.flush Lwt_io.stdout)
         stream;
     ]
