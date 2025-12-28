@@ -16,14 +16,8 @@ let service_instance_id = ref None
     @since 0.12 *)
 let service_version = ref None
 
-let instrumentation_name = ref "ocaml-otel"
-
-let instrumentation_runtime_version = ref "%%VERSION_NUM%%"
-
-let instrumentation_library () =
-  make_instrumentation_scope
-    ~version:!instrumentation_runtime_version
-    ~name:!instrumentation_name ()
+let instrumentation_library =
+  make_instrumentation_scope ~version:"%%VERSION_NUM%%" ~name:"ocaml-otel" ()
 
 (** Global attributes, initially set via OTEL_RESOURCE_ATTRIBUTES and modifiable
     by the user code. They will be attached to each outgoing metrics/traces. *)

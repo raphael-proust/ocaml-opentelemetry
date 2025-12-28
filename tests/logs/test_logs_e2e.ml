@@ -3,7 +3,7 @@ module L = Opentelemetry_proto.Logs
 
 (* NOTE: This port must be different from that used by other integration tests,
    to prevent socket binding clashes. *)
-let port = 4359
+let port = 4399
 
 let url = Printf.sprintf "http://localhost:%d" port
 

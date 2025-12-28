@@ -7,8 +7,7 @@ let make_resource_logs ?service_name ?attrs (logs : Proto.Logs.log_record list)
   let attributes = OTEL.Globals.mk_attributes ?service_name ?attrs () in
   let resource = Proto.Resource.make_resource ~attributes () in
   let ll =
-    Proto.Logs.make_scope_logs
-      ~scope:(OTEL.Globals.instrumentation_library ())
+    Proto.Logs.make_scope_logs ~scope:OTEL.Globals.instrumentation_library
       ~log_records:logs ()
   in
   Proto.Logs.make_resource_logs ~resource ~scope_logs:[ ll ] ()
@@ -16,8 +15,7 @@ let make_resource_logs ?service_name ?attrs (logs : Proto.Logs.log_record list)
 let make_resource_spans ?service_name ?attrs spans : Proto.Trace.resource_spans
     =
   let ils =
-    Proto.Trace.make_scope_spans
-      ~scope:(OTEL.Globals.instrumentation_library ())
+    Proto.Trace.make_scope_spans ~scope:OTEL.Globals.instrumentation_library
       ~spans ()
   in
   let attributes = OTEL.Globals.mk_attributes ?service_name ?attrs () in
@@ -29,9 +27,7 @@ let make_resource_metrics ?service_name ?attrs (l : OTEL.Metrics.t list) :
     Proto.Metrics.resource_metrics =
   let open Proto.Metrics in
   let lm =
-    make_scope_metrics
-      ~scope:(OTEL.Globals.instrumentation_library ())
-      ~metrics:l ()
+    make_scope_metrics ~scope:OTEL.Globals.instrumentation_library ~metrics:l ()
   in
   let attributes = OTEL.Globals.mk_attributes ?service_name ?attrs () in
   let resource = Proto.Resource.make_resource ~attributes () in
