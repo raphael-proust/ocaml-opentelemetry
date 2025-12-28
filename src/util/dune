@@ -6,5 +6,6 @@
   (re_export opentelemetry.atomic)
   ptime
   threads
+  threads.posix
   opentelemetry.domain)
  (synopsis "Basic utilities for opentelemetry"))
