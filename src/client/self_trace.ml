@@ -1,4 +1,3 @@
-open Opentelemetry_atomic
 open Common_
 
 let enabled = Atomic.make false

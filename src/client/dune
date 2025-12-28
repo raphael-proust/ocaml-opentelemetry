@@ -1,7 +1,7 @@
 (library
  (name opentelemetry_client)
  (public_name opentelemetry-client)
- (flags :standard -open Opentelemetry_util)
+ (flags :standard -open Opentelemetry_util -open Opentelemetry_atomic)
  (libraries
   opentelemetry
   opentelemetry.util

@@ -11,7 +11,9 @@
   -open
   Opentelemetry_core
   -open
-  Opentelemetry_core.Common_)
+  Opentelemetry_core.Common_
+  -open
+  Opentelemetry_atomic)
  (libraries
   (re_export opentelemetry.core)
   (re_export opentelemetry.proto)
