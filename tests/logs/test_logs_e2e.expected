@@ -1,17 +1,6 @@
 { resource =
     Some(
-      { attributes =
-          [{ key = "service.namespace";
-             value = Some(String_value("ocaml-otel.test"));
-           };
-           { key = "service.name"; value = Some(String_value("emit_logs")); };
-           { key = "process.runtime.version";
-             value = Some(String_value("5.3.0"));
-           };
-           { key = "process.runtime.name";
-             value = Some(String_value("ocaml"));
-           }
-           ];
+      { attributes = [];
         dropped_attributes_count = 0 (* absent *);
         entity_refs = [];
       });

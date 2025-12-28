@@ -1,5 +1,6 @@
 module Client = Opentelemetry_client
 module L = Opentelemetry_proto.Logs
+module Res = Opentelemetry_proto.Resource
 
 (* NOTE: This port must be different from that used by other integration tests,
    to prevent socket binding clashes. *)
@@ -18,6 +19,14 @@ let tests (signal_batches : Client.Resource_signal.t list) =
       | Logs ls ->
         ls (* Mask out the times so tests don't change in between runs *)
         |> List.map (fun (l : L.resource_logs) ->
+               let masked_resource =
+                 l.resource
+                 |> Option.map (fun (r : Res.resource) ->
+                        let r = Res.copy_resource r in
+                        (* just remove the metadata... *)
+                        Res.resource_set_attributes r [];
+                        r)
+               in
                let masked_scope_logs =
                  List.map
                    (fun (sl : L.scope_logs) ->
@@ -40,6 +49,7 @@ let tests (signal_batches : Client.Resource_signal.t list) =
                in
                let l = L.copy_resource_logs l in
                L.resource_logs_set_scope_logs l masked_scope_logs;
+               Option.iter (L.resource_logs_set_resource l) masked_resource;
                l)
         |> List.iter (Format.printf "%a\n" L.pp_resource_logs)
       | _ -> ())
