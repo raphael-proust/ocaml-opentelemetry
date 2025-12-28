@@ -213,7 +213,6 @@ let tests params signal_batches =
   ]
 
 let run_tests ~port (cmds : _ list) : unit =
-  Opentelemetry.Globals.instrumentation_runtime_version := "<fixed>";
   let suites =
     let open Lwt.Syntax in
     Lwt_main.run
