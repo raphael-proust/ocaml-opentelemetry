@@ -11,6 +11,8 @@ let sleep_outer = ref 2.0
 
 let n_jobs = ref 1
 
+let iterations = ref 4
+
 let n = ref max_int
 
 let num_sleep = Atomic.make 0
@@ -34,9 +36,9 @@ let run_job () : unit Lwt.t =
     (* Printf.printf "cnt=%d\n%!" !cnt; *)
     incr cnt;
 
-    for%lwt j = 0 to 4 do
+    for%lwt j = 1 to !iterations do
       (* parent scope is found via thread local storage *)
-      let@ scope =
+      let@ span =
         Atomic.incr num_tr;
         OT.Tracer.with_ ~kind:OT.Span.Span_kind_internal ~parent:_scope
           ~attrs:[ "j", `Int j ]
@@ -48,41 +50,40 @@ let run_job () : unit Lwt.t =
         Atomic.incr num_sleep
       );
 
-      OT.Logger.logf ~trace_id:(OT.Span.trace_id scope)
-        ~span_id:(OT.Span.id scope) ~severity:Severity_number_info (fun k ->
+      OT.Logger.logf ~trace_id:(OT.Span.trace_id span)
+        ~span_id:(OT.Span.id span) ~severity:Severity_number_info (fun k ->
           k "inner at %d" j);
+      try%lwt
+        Atomic.incr num_tr;
+        (* allocate some stuff *)
+        let%lwt () =
+          if !stress_alloc_ then (
+            let@ scope =
+              OT.Tracer.with_ ~kind:OT.Span.Span_kind_internal ~parent:span
+                "alloc"
+            in
+            let _arr = Sys.opaque_identity @@ Array.make (25 * 25551) 42.0 in
+            ignore _arr;
+            OT.Span.add_event scope (OT.Event.make "done with alloc");
+            Lwt.return ()
+          ) else
+            Lwt.return ()
+        in
 
-      incr i;
+        let%lwt () = Lwt_unix.sleep !sleep_inner in
+        Atomic.incr num_sleep;
 
-      (try
-         (* allocate some stuff *)
-         if !stress_alloc_ then (
-           let@ _ =
-             OT.Tracer.with_ ~kind:OT.Span.Span_kind_internal ~parent:scope
-               "alloc"
-           in
-           Atomic.incr num_tr;
-
-           let _arr : _ array =
-             Sys.opaque_identity @@ Array.make (25 * 25551) 42.0
-           in
-           ignore _arr
-         );
-
-         if !sleep_inner > 0. then (
-           Unix.sleepf !sleep_inner;
-           Atomic.incr num_sleep
-         );
-
-         if j = 4 && !i mod 13 = 0 then failwith "oh no";
-
-         (* simulate a failure *)
-         OT.Span.add_event scope (OT.Event.make "done with alloc")
-       with Failure _ -> ());
-
-      Lwt.return ()
+        (* simulate a failure *)
+        if j = 4 && !i mod 13 = 0 then
+          Lwt.fail (Failure "oh no")
+        else
+          Lwt.return ()
+      with Failure _ -> Lwt.return ()
     done
   done
+(* >>= fun () ->
+   Printf.eprintf "test: job done\n%!"; 
+  Lwt.return ()*)
 
 let run () : unit Lwt.t =
   OT.Gc_metrics.setup_on_main_exporter ();
@@ -119,6 +120,8 @@ let () =
   let final_stats = ref false in
 
   let n_bg_threads = ref 0 in
+  let url = ref None in
+  let n_procs = ref 1 in
   let opts =
     [
       "--debug", Arg.Bool (( := ) debug), " enable debug output";
@@ -136,12 +139,24 @@ let () =
       "--bg-threads", Arg.Set_int n_bg_threads, " number of background threads";
       "--no-self-trace", Arg.Clear self_trace, " disable self tracing";
       "-n", Arg.Set_int n, " number of iterations (default ∞)";
+      ( "--iterations",
+        Arg.Set_int iterations,
+        " the number of inner iterations to run" );
+      ( "--url",
+        Arg.String (fun s -> url := Some s),
+        " set the url for the OTel collector" );
       "--final-stats", Arg.Set final_stats, " display some metrics at the end";
+      "--procs", Arg.Set_int n_procs, " number of processes (stub)";
     ]
     |> Arg.align
   in
 
   Arg.parse opts (fun _ -> ()) "emit1 [opt]*";
+
+  if !n_procs > 1 then
+    failwith
+      "TODO: add support for running multiple processes to the lwt-cohttp \
+       emitter";
 
   let some_if_nzero r =
     if !r > 0 then
@@ -151,7 +166,7 @@ let () =
   in
   let config =
     Opentelemetry_client_ocurl_lwt.Config.make ~debug:!debug
-      ~self_trace:!self_trace
+      ~self_trace:!self_trace ?url:!url
       ?http_concurrency_level:(some_if_nzero n_bg_threads)
       ~batch_traces:(some_if_nzero batch_traces)
       ~batch_metrics:(some_if_nzero batch_metrics)

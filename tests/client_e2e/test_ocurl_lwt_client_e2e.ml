@@ -4,14 +4,14 @@ open Clients_e2e_lib
 
 (* NOTE: This port must be different from that used by other integration tests,
    to prevent socket binding clashes. *)
-let port = 4361
+let port = 4359
 
 let url = Printf.sprintf "http://localhost:%d" port
 
 let () =
   Clients_e2e_lib.run_tests ~port
     [
-      ( "emit1",
+      ( "emit1_ocurl_lwt",
         {
           url;
           jobs = 1;
@@ -22,7 +22,7 @@ let () =
           batch_metrics = 2;
           batch_logs = 2;
         } );
-      ( "emit1",
+      ( "emit1_ocurl_lwt",
         {
           url;
           jobs = 3;
@@ -33,7 +33,7 @@ let () =
           batch_metrics = 3;
           batch_logs = 400;
         } );
-      ( "emit1",
+      ( "emit1_ocurl_lwt",
         {
           url;
           jobs = 3;

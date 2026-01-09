@@ -5,6 +5,7 @@
   (binaries
    (../bin/emit1.exe as emit1)
    (../bin/emit1_cohttp.exe as emit1_cohttp)
+   (../bin/emit1_ocurl_lwt.exe as emit1_ocurl_lwt)
    (../bin/emit1_eio.exe as emit1_eio)
    (./gather_signals.exe as gather_signals))))
 
@@ -38,8 +39,6 @@
  (names test_cohttp_lwt_client_e2e)
  (modules test_cohttp_lwt_client_e2e)
  (package opentelemetry-client-cohttp-lwt)
- (enabled_if
-  (>= %{ocaml_version} 5.0))
  (deps %{bin:emit1_cohttp})
  (libraries clients_e2e_lib alcotest opentelemetry opentelemetry-client))
 
@@ -57,8 +56,13 @@
  (modules test_ocurl_client_e2e)
  (package opentelemetry-client-ocurl)
  (deps %{bin:emit1})
- (enabled_if
-  (>= %{ocaml_version} 5.0))
+ (libraries clients_e2e_lib alcotest opentelemetry opentelemetry-client))
+
+(tests
+ (names test_ocurl_lwt_client_e2e)
+ (modules test_ocurl_lwt_client_e2e)
+ (package opentelemetry-client-ocurl-lwt)
+ (deps %{bin:emit1_ocurl_lwt})
  (libraries clients_e2e_lib alcotest opentelemetry opentelemetry-client))
 
 (executable
