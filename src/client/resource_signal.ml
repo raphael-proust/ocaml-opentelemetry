@@ -152,3 +152,5 @@ module Pp = struct
     | Metrics ms -> metrics fmt ms
     | Traces ts -> traces fmt ts
 end
+
+let pp = Pp.pp

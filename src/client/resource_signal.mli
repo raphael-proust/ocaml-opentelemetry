@@ -14,6 +14,8 @@ type t =
   | Metrics of Opentelemetry_proto.Metrics.resource_metrics list
   | Logs of Opentelemetry_proto.Logs.resource_logs list
 
+val pp : Format.formatter -> t -> unit
+
 val of_logs :
   ?service_name:string ->
   ?attrs:OTEL.Key_value.t list ->
