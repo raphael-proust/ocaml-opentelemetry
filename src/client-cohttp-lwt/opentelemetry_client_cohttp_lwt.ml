@@ -115,7 +115,7 @@ let create_exporter ?(config = Config.make ()) () =
       ~high_watermark:Bounded_queue.Defaults.high_watermark ()
   in
   Exporter_queued.create ~clock:Clock.ptime_clock ~q:bq ~consumer ()
-  |> Exporter_add_batching.add_batching ~config
+  |> Exporter_batch.add_batching ~config
 
 let create_backend = create_exporter
 

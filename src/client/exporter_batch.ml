@@ -1,26 +1,19 @@
-(** Add batching to the emitters of an exporter.
-
-    The exporter has multiple emitters (one per signal type), this can add
-    batching on top of each of them (so that they emit less frequent, larger
-    batches of signals, amortizing the per-signal cost). *)
-
 open Common_
 
-(** Given an exporter, add batches for each emitter according to [config]. *)
 let add_batching ~(config : Http_config.t) (exp : OTEL.Exporter.t) :
     OTEL.Exporter.t =
   let timeout = Mtime.Span.(config.batch_timeout_ms * ms) in
 
   let emit_spans =
-    Emitter_add_batching.add_batching_opt ~timeout
-      ~batch_size:config.batch_traces exp.emit_spans
+    Emitter_batch.add_batching_opt ~timeout ~batch_size:config.batch_traces
+      exp.emit_spans
   in
   let emit_metrics =
-    Emitter_add_batching.add_batching_opt ~timeout
-      ~batch_size:config.batch_metrics exp.emit_metrics
+    Emitter_batch.add_batching_opt ~timeout ~batch_size:config.batch_metrics
+      exp.emit_metrics
   in
   let emit_logs =
-    Emitter_add_batching.add_batching_opt ~timeout ~batch_size:config.batch_logs
+    Emitter_batch.add_batching_opt ~timeout ~batch_size:config.batch_logs
       exp.emit_logs
   in
 

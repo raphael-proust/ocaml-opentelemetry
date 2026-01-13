@@ -93,7 +93,7 @@ let create_exporter ?(config = Config.make ()) () : OTEL.Exporter.t =
   in
 
   OTELC.Exporter_queued.create ~clock:OTEL.Clock.ptime_clock ~q:bq ~consumer ()
-  |> OTELC.Exporter_add_batching.add_batching ~config:config.common
+  |> OTELC.Exporter_batch.add_batching ~config:config.common
 
 let create_backend = create_exporter
 
