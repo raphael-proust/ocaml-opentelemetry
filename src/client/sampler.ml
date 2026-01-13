@@ -5,7 +5,7 @@ type t = {
 }
 
 let create ~proba_accept () : t =
-  (* FIXME: either czzry a random state and protect it, or make sure
+  (* FIXME: either create a random state and protect it, or make sure
      we Random.self_init() in the current domain?? *)
   if proba_accept < 0. || proba_accept > 1. then
     invalid_arg "sampler: proba_accept must be in [0., 1.]";
