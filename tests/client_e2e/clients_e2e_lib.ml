@@ -32,11 +32,11 @@ let signals_from_batch (signal_batch : Client.Resource_signal.t) =
 
 let filter_map_spans f signals =
   signals
-  |> List.concat_map (function
+  |> CCList.flat_map (function
        | `Log _ | `Metric _ -> []
        | `Trace (r : Proto.Trace.resource_spans) ->
          r.scope_spans
-         |> List.concat_map (fun ss ->
+         |> CCList.flat_map (fun ss ->
                 ss.Proto.Trace.spans |> List.filter_map f))
 
 let count_spans_with_name name signals =
@@ -50,11 +50,11 @@ let count_spans_with_name name signals =
 
 let filter_map_metrics f signals =
   signals
-  |> List.concat_map (function
+  |> CCList.flat_map (function
        | `Log _ | `Trace _ -> []
        | `Metric (r : Proto.Metrics.resource_metrics) ->
          r.scope_metrics
-         |> List.concat_map (fun ss ->
+         |> CCList.flat_map (fun ss ->
                 ss.Proto.Metrics.metrics |> List.filter_map f))
 
 let count_metrics_with_name name signals =
@@ -91,11 +91,11 @@ let get_metric_values name signals =
 
 let filter_map_logs (f : Proto.Logs.log_record -> 'a option) signals : 'a list =
   signals
-  |> List.concat_map (function
+  |> CCList.flat_map (function
        | `Metric _ | `Trace _ -> []
        | `Log (r : Proto.Logs.resource_logs) ->
          r.scope_logs
-         |> List.concat_map (fun ss ->
+         |> CCList.flat_map (fun ss ->
                 ss.Proto.Logs.log_records |> List.filter_map f))
 
 let count_logs_with_body p signals =
