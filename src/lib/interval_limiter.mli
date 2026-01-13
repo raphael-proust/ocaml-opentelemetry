@@ -5,6 +5,8 @@ type t
 
 val create : min_interval:Mtime.span -> unit -> t
 
+val min_interval : t -> Mtime.span
+
 val make_attempt : t -> bool
 (** [make_attempt lim] returns [true] if the last successful attempt was more
     than [min_interval] ago, as measured by mtime. If so, this counts as the new
