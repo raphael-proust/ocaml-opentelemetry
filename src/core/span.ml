@@ -72,6 +72,11 @@ let kind self =
 
 let to_span_link (self : t) : Span_link.t =
   make_span_link ~attributes:self.attributes
+    ?flags:
+      (if span_has_flags self then
+         Some self.flags
+       else
+         None)
     ?dropped_attributes_count:
       (if span_has_dropped_attributes_count self then
          Some self.dropped_attributes_count
