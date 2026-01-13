@@ -56,8 +56,10 @@ val push' : 'a t -> 'a list -> unit
 val cur_size : _ t -> int
 (** Number of elements in the current batch *)
 
-open Opentelemetry_emitter
+(**/**)
 
-val wrap_emitter : 'a t -> 'a Emitter.t -> 'a Emitter.t
-(** [wrap_emitter batch e] is an emitter that uses batch [batch] to gather
-    signals into larger lists before passing them to [e]. *)
+module Internal_ : sig
+  val mtime_dummy_ : Mtime.t
+end
+
+(**/**)
