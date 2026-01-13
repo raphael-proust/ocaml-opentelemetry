@@ -30,20 +30,3 @@ let accept (self : t) : bool =
 
   if res then Atomic.incr self.n_accepted;
   res
-
-open Opentelemetry_emitter
-
-let wrap_emitter (self : t) (e : _ Emitter.t) : _ Emitter.t =
-  let enabled () = e.enabled () in
-  let closed () = Emitter.closed e in
-  let flush_and_close () = Emitter.flush_and_close e in
-  let tick ~mtime = Emitter.tick e ~mtime in
-
-  let emit l =
-    if l <> [] && e.enabled () then (
-      let accepted = List.filter (fun _x -> accept self) l in
-      if accepted <> [] then Emitter.emit e accepted
-    )
-  in
-
-  { Emitter.closed; enabled; flush_and_close; tick; emit }
