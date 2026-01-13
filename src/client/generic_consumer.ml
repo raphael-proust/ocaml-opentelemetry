@@ -1,3 +1,5 @@
+(** A consumer: pulls signals from a queue, sends them somewhere else *)
+
 open Common_
 
 type error = Export_error.t
@@ -7,16 +9,20 @@ let n_errors = Atomic.make 0
 
 module type IO = Generic_io.S_WITH_CONCURRENCY
 
+(** Generic sender: where to send signals *)
 module type SENDER = sig
   module IO : IO
 
   type t
+  (** Sender state *)
 
   type config
 
   val create : config:config -> unit -> t
 
   val cleanup : t -> unit
+  (** Cleanup resources once we are done. The sender cannot be used anymore
+      after this is called on it *)
 
   val send : t -> OTEL.Any_signal_l.t -> (unit, error) result IO.t
 end
