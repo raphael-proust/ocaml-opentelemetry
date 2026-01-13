@@ -1,5 +1,7 @@
 (** Traces.
 
+    The tracer is an object that can be used to emit spans that form a trace.
+
     See
     {{:https://opentelemetry.io/docs/reference/specification/overview/#tracing-signal}
      the spec} *)

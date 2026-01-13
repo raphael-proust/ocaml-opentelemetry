@@ -1,6 +1,8 @@
-(** Main exporter, used by the main tracing functions.
+(** Main exporter.
 
-    It is better to pass an explicit exporter when possible. *)
+    This is a singleton exporter, or [None] if not defined. It is better to pass
+    an explicit exporter when possible, but this is quite convenient and most
+    programs only need one exporter. *)
 
 open Exporter
 
@@ -26,7 +28,7 @@ let remove ~on_done () : unit =
     shutdown exp
 
 (** Is there a configured exporter? *)
-let present () : bool = Option.is_some (Atomic.get exporter)
+let[@inline] present () : bool = Option.is_some (Atomic.get exporter)
 
 (** Current exporter, if any *)
 let[@inline] get () : t option = Atomic.get exporter
@@ -38,8 +40,11 @@ let add_on_tick_callback f =
 module Util = struct
   open Opentelemetry_emitter
 
-  (** An emitter that uses the current main *)
-  let dynamic_forward_to_main_exporter ~get_emitter () : _ Emitter.t =
+  (** An emitter that uses the corresponding emitter in the current main
+      exporter. When this emitter is used to [emit signals], the current
+      exporter is looked up, [get_emitter exporter] is then used to locate the
+      relevant emitter [e'], and [signals] is in turn emitted in [e']. *)
+  let dynamic_forward_emitter_to_main_exporter ~get_emitter () : _ Emitter.t =
     let enabled () = present () in
     let closed () = not (enabled ()) in
     let flush_and_close () = () in
@@ -72,15 +77,15 @@ let[@inline] active () : Aswitch.t =
     @since NEXT_RELEASE *)
 let dynamic_forward_to_main_exporter : Exporter.t =
   let emit_logs =
-    Util.dynamic_forward_to_main_exporter ()
+    Util.dynamic_forward_emitter_to_main_exporter ()
       ~get_emitter:Exporter.(fun e -> e.emit_logs)
   in
   let emit_metrics =
-    Util.dynamic_forward_to_main_exporter ()
+    Util.dynamic_forward_emitter_to_main_exporter ()
       ~get_emitter:Exporter.(fun e -> e.emit_metrics)
   in
   let emit_spans =
-    Util.dynamic_forward_to_main_exporter ()
+    Util.dynamic_forward_emitter_to_main_exporter ()
       ~get_emitter:Exporter.(fun e -> e.emit_spans)
   in
   let on_tick f =

@@ -1,3 +1,7 @@
+(** Metrics.
+
+    The metrics emitter is used to, well, emit metrics. *)
+
 open Opentelemetry_emitter
 
 type t = {

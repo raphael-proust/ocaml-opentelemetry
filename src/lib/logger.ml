@@ -1,5 +1,7 @@
 (** Logs.
 
+    The logger is an object that can be used to emit logs.
+
     See
     {{:https://opentelemetry.io/docs/reference/specification/overview/#log-signal}
      the spec} *)
