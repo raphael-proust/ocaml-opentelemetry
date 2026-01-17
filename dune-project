@@ -36,6 +36,8 @@
    (and
     (>= 4.0)
     (< 5.0)))
+  (ambient-context
+   (>= 0.2))
   (ocaml-lsp-server :with-dev-setup)
   (ocamlformat
    (and
@@ -47,7 +49,7 @@
  (depopts atomic trace thread-local-storage lwt eio picos)
  (conflicts
   (trace
-   (< 0.10)))
+   (< 0.99)))
  (tags
   (instrumentation tracing opentelemetry datadog jaeger)))
 
@@ -74,6 +76,7 @@
    (>= "4.08"))
   (opentelemetry
    (= :version))
+  ambient-context-lwt
   (cohttp-lwt-unix :with-test)
   (odoc :with-doc)
   (lwt
@@ -158,6 +161,7 @@
    (= :version))
   (opentelemetry-lwt
    (= :version))
+  ambient-context-lwt
   (odoc :with-doc)
   (lwt
    (>= "5.3"))
@@ -180,6 +184,7 @@
    (= :version))
   (opentelemetry-client
    (= :version))
+  ambient-context-lwt
   (odoc :with-doc)
   (lwt
    (>= "5.3"))
@@ -204,6 +209,7 @@
    (>= "1.4"))
   ca-certs
   mirage-crypto-rng-eio
+  ambient-context-eio
   (opentelemetry
    (= :version))
   (opentelemetry-client

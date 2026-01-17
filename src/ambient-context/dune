@@ -1,22 +1,7 @@
 (library
  (name opentelemetry_ambient_context)
  (public_name opentelemetry.ambient-context)
- (synopsis
-  "Abstraction over thread-local storage and fiber-local storage mechanisms")
- (flags
-  :standard
-  -open
-  Opentelemetry_ambient_context_core
-  -open
-  Opentelemetry_atomic)
+ (synopsis "re-export ambient-context")
  (libraries
-  hmap
-  threads
-  (re_export opentelemetry.ambient-context.core)
-  (re_export opentelemetry.atomic)
-  (re_export opentelemetry.util)
-  (select
-   default_.ml
-   from
-   (opentelemetry.ambient-context.tls -> default_.tls.ml)
-   (-> default_.map.ml))))
+  (re_export ambient-context.core)
+  (re_export ambient-context)))

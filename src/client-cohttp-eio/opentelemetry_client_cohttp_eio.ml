@@ -180,8 +180,7 @@ let create_exporter ?(config = Config.make ()) ~sw ~env () =
 let create_backend = create_exporter
 
 let setup_ ~sw ?config env : unit =
-  Opentelemetry_ambient_context.set_current_storage
-    Opentelemetry_ambient_context_eio.storage;
+  Opentelemetry_ambient_context.set_current_storage Ambient_context_eio.storage;
   let exp = create_exporter ?config ~sw ~env () in
   Main_exporter.set exp
 

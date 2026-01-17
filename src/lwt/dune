@@ -4,5 +4,5 @@
  (synopsis "Lwt frontend for opentelemetry")
  (libraries
   (re_export lwt)
-  opentelemetry.ambient-context.lwt
+  ambient-context-lwt
   (re_export opentelemetry)))

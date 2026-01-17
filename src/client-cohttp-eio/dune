@@ -8,7 +8,7 @@
   (re_export opentelemetry)
   (re_export opentelemetry-client)
   (re_export opentelemetry-client.sync)
-  opentelemetry.ambient-context.eio
+  ambient-context-eio
   (re_export eio)
   (re_export eio.core)
   (re_export eio.unix)
