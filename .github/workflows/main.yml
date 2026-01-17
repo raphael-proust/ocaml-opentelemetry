@@ -42,8 +42,8 @@ jobs:
           allow-prerelease-opam: true
 
       - run: |
-          opam pin pbrt 4.0 -y -n
-          opam install pbrt -y
+          opam pin trace https://github.com/ocaml-tracing/ocaml-trace.git#simon/full-refactor-open-sum-types-no-more-manual-spans -y -n
+          opam install pbrt 4.0 -y
 
       # We cannot install packages that need eio on ocaml versions before 5
       - run: |
