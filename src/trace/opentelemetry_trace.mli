@@ -5,9 +5,7 @@
     that use [ocaml-trace], and they will automatically emit OpenTelemetry spans
     and logs.
 
-    Both explicit scope (in the [_manual] functions such as [enter_manual_span])
-    and implicit scope (in {!Internal.M.with_span}, via {!Ambient_context}) are
-    supported; see the detailed notes on {!Internal.M.enter_manual_span}.
+    Ambient_context is used to track the current ambient span.
 
     We use [Trace_core.extension_event] to add more features on top of the
     common tracing interface. For example to set the "span kind":
@@ -37,9 +35,6 @@ module Extensions : sig
     | Ev_set_span_status of Otrace.span * OTEL.Span_status.t
 end
 
-val on_internal_error : (string -> unit) ref
-(** Callback to print errors in the library itself (ie bugs) *)
-
 val setup : unit -> unit
 (** Install the OTEL backend as a Trace collector *)
 
@@ -49,24 +44,16 @@ val setup_with_otel_exporter : OTEL.Exporter.t -> unit
 val setup_with_otel_backend : OTEL.Exporter.t -> unit
 [@@deprecated "use setup_with_otel_exporter"]
 
-(* TODO: subscriber, with the next gen of Trace_subscriber
-   that allows us to provide [new_trace_id] so we can produce 16B trace IDs. 
-val subscriber_of_exporter : OTEL.Exporter.t -> Trace_subscriber.t
-*)
-
 val collector_of_exporter : OTEL.Exporter.t -> Trace_core.collector
 
 val collector : unit -> Trace_core.collector
 [@@deprecated "use collector_of_exporter, avoid global state"]
-(** Make a Trace collector that uses the OTEL backend to send spans and logs *)
+(** Make a Trace collector that uses the main OTEL backend to send spans and
+    logs *)
 
-(* NOTE: we cannot be sure that [sc2] is still alive and findable 
-   in the active spans table. We could provide this operation under
-   the explicit precondition that it is?
-val link_spans : Otrace.explicit_span -> Otrace.explicit_span -> unit
+val link_spans : Otrace.span -> Otrace.span -> unit
 (** [link_spans sp1 sp2] modifies [sp1] by adding a span link to [sp2].
     @since 0.11 *)
-*)
 
 val link_span_to_otel_ctx : Otrace.span -> OTEL.Span_ctx.t -> unit
 (** [link_spans sp1 sp_ctx2] modifies [sp1] by adding a span link to [sp_ctx2].
@@ -82,15 +69,13 @@ val set_span_status : Otrace.span -> OTEL.Span_status.t -> unit
 val record_exception : Otrace.span -> exn -> Printexc.raw_backtrace -> unit
 (** Record exception in the current span. *)
 
-val with_ambient_span : Otrace.explicit_span -> (unit -> 'a) -> 'a
+val with_ambient_span : Otrace.span -> (unit -> 'a) -> 'a
 (** [with_ambient_span sp f] calls [f()] in an ambient context where [sp] is the
-    current span.
+    current span. *)
 
-    Explicit spans are typically entered and exited using [enter_manual_span]
-    and [exit_manual_span], whereas ambient-context requires a
-    [with_span span f] kind of approach. This function is here to bridge the gap
-    whenever possible. For regular [Otrace.span] this is not needed because the
-    collector will set the ambient span automatically. *)
+val with_ambient_span_ctx : OTEL.Span_ctx.t -> (unit -> 'a) -> 'a
+(** [with_ambient_span_ctx spc f] calls [f()] in a scope where [spc] is the
+    ambient span-context *)
 
 module Well_known : sig end
 [@@deprecated

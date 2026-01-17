@@ -9,5 +9,4 @@
   (re_export opentelemetry.util)
   opentelemetry.atomic
   (re_export opentelemetry)
-  (re_export trace.core)
-  trace.subscriber))
+  (re_export trace.core)))
