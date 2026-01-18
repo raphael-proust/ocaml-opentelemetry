@@ -35,8 +35,6 @@ open struct
   let k_span_ctx : OTEL.Span_ctx.t Ambient_context.Context.key =
     Ambient_context.Context.new_key ()
 
-  (* TODO: params *)
-
   let enter_span (self : state) ~__FUNCTION__ ~__FILE__ ~__LINE__ ~params:_
       ~(data : (_ * Otrace.user_data) list) ~parent name : Otrace.span =
     let start_time = OTEL.Clock.now self.clock in

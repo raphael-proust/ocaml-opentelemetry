@@ -68,7 +68,9 @@ let run_job () =
           let _arr : _ array =
             Sys.opaque_identity @@ Array.make (25 * 25551) 42.0
           in
-          ignore _arr
+          ignore _arr;
+
+          OT.Span.add_event scope (OT.Event.make "done with alloc")
         );
 
         if !sleep_inner > 0. then (
@@ -76,10 +78,8 @@ let run_job () =
           Atomic.incr num_sleep
         );
 
-        if j = 4 && !i mod 13 = 0 then failwith "oh no";
-
         (* simulate a failure *)
-        OT.Span.add_event scope (OT.Event.make "done with alloc")
+        if j = 4 && !i mod 13 = 0 then failwith "oh no"
       with Failure _ -> ()
     done
   done;
