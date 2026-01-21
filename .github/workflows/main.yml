@@ -59,7 +59,6 @@ jobs:
 
       - run: opam exec -- dune build @install -p opentelemetry,opentelemetry-client,opentelemetry-lwt,opentelemetry-client-ocurl,opentelemetry-cohttp-lwt,opentelemetry-client-cohttp-lwt,opentelemetry-logs
 
-      - run: opam pin trace https://github.com/c-cube/ocaml-trace.git#b132951644884ce204aeee3ba1d3c1ba79442f2f -y -n
       - run: opam install trace
       - run: opam exec -- dune build @install -p opentelemetry
 
