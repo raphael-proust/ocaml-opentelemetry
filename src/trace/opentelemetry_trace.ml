@@ -10,6 +10,11 @@ module Extensions = struct
       }
     | Ev_set_span_kind of Otrace.span * OTEL.Span_kind.t
     | Ev_set_span_status of Otrace.span * OTEL.Span_status.t
+
+  type Otrace.metric +=
+    | Metric_hist of OTEL.Metrics.histogram_data_point
+    | Metric_sum_int of int
+    | Metric_sum_float of float
 end
 
 open Extensions
@@ -127,17 +132,25 @@ open struct
 
   let metric (self : state) ~level:_ ~params:_ ~data:attrs name v : unit =
     let now = OTEL.Clock.now self.clock in
-    let vals =
+    let kind =
+      let open Trace_core.Core_ext in
       match v with
-      | Trace_core.Core_ext.Metric_int i -> [ OTEL.Metrics.int ~attrs ~now i ]
-      | Trace_core.Core_ext.Metric_float v ->
-        [ OTEL.Metrics.float ~attrs ~now v ]
-      | _ -> []
+      | Metric_int i -> `gauge (OTEL.Metrics.int ~attrs ~now i)
+      | Metric_float v -> `gauge (OTEL.Metrics.float ~attrs ~now v)
+      | Metric_sum_int i -> `sum (OTEL.Metrics.int ~attrs ~now i)
+      | Metric_sum_float v -> `sum (OTEL.Metrics.float ~attrs ~now v)
+      | Metric_hist h -> `hist h
+      | _ -> `none
     in
-    if vals <> [] then (
-      let m = OTEL.Metrics.(gauge ~name vals) in
-      OTEL.Exporter.send_metrics self.exporter [ m ]
-    )
+
+    let m =
+      match kind with
+      | `none -> []
+      | `gauge v -> [ OTEL.Metrics.gauge ~name [ v ] ]
+      | `sum v -> [ OTEL.Metrics.sum ~name [ v ] ]
+      | `hist h -> [ OTEL.Metrics.histogram ~name [ h ] ]
+    in
+    if m <> [] then OTEL.Exporter.send_metrics self.exporter m
 
   let extension (_self : state) ~level:_ ev =
     match ev with

@@ -33,6 +33,11 @@ module Extensions : sig
           (** Record exception and potentially turn span to an error *)
     | Ev_set_span_kind of Otrace.span * OTEL.Span_kind.t
     | Ev_set_span_status of Otrace.span * OTEL.Span_status.t
+
+  type Otrace.metric +=
+    | Metric_hist of OTEL.Metrics.histogram_data_point
+    | Metric_sum_int of int
+    | Metric_sum_float of float
 end
 
 val setup : unit -> unit

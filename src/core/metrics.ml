@@ -49,17 +49,20 @@ let sum ~name ?description ?unit_
   in
   make_metric ~name ?description ?unit_ ~data ()
 
+type histogram_data_point = Metrics.histogram_data_point
+
 (** Histogram data
     @param count number of values in population (non negative)
     @param sum sum of values in population (0 if count is 0)
     @param now the timestamp for this data point
     @param bucket_counts
       count value of histogram for each bucket. Sum of the counts must be equal
-      to [count]. length must be [1+length explicit_bounds]
+      to [count]. length must be [1+length explicit_bounds] (unless both have
+      length 0)
     @param explicit_bounds strictly increasing list of bounds for the buckets *)
 let histogram_data_point ?start_time_unix_nano ?(attrs = []) ?(exemplars = [])
-    ?(explicit_bounds = []) ?sum ~(now : Timestamp_ns.t) ~bucket_counts ~count
-    () : histogram_data_point =
+    ~explicit_bounds ?sum ~(now : Timestamp_ns.t) ~bucket_counts ~count () :
+    histogram_data_point =
   let attributes = attrs |> List.map Key_value.conv in
   make_histogram_data_point ?start_time_unix_nano ~time_unix_nano:now
     ~attributes ~exemplars ~bucket_counts ~explicit_bounds ~count ?sum ()
