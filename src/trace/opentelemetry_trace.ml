@@ -35,8 +35,9 @@ open struct
   let k_span_ctx : OTEL.Span_ctx.t Ambient_context.Context.key =
     Ambient_context.Context.new_key ()
 
-  let enter_span (self : state) ~__FUNCTION__ ~__FILE__ ~__LINE__ ~params:_
-      ~(data : (_ * Otrace.user_data) list) ~parent name : Otrace.span =
+  let enter_span (self : state) ~__FUNCTION__ ~__FILE__ ~__LINE__ ~level:_
+      ~params:_ ~(data : (_ * Otrace.user_data) list) ~parent name : Otrace.span
+      =
     let start_time = OTEL.Clock.now self.clock in
     let trace_id, parent_id =
       match parent with
@@ -94,7 +95,18 @@ open struct
     | Span_otel sp -> OTEL.Span.add_attrs sp data
     | _ -> ()
 
-  let message (self : state) ~params:_ ~data ~span msg : unit =
+  let severity_of_level : Trace_core.Level.t -> _ = function
+    | Trace -> OTEL.Log_record.Severity_number_trace
+    | Debug1 -> OTEL.Log_record.Severity_number_debug
+    | Debug2 -> OTEL.Log_record.Severity_number_debug2
+    | Debug3 -> OTEL.Log_record.Severity_number_debug3
+    | Error -> OTEL.Log_record.Severity_number_error
+    | Info -> OTEL.Log_record.Severity_number_info
+    | Warning -> OTEL.Log_record.Severity_number_warn
+
+  let message (self : state) ~(level : Trace_core.Level.t) ~params:_ ~data ~span
+      msg : unit =
+    let observed_time_unix_nano = OTEL.Clock.now self.clock in
     let trace_id, span_id =
       match span with
       | Some (Span_otel sp) ->
@@ -106,24 +118,28 @@ open struct
         | _ -> None, None)
     in
 
-    let observed_time_unix_nano = OTEL.Clock.now self.clock in
+    let severity = severity_of_level level in
     let log =
-      OTEL.Log_record.make ?trace_id ?span_id ~attrs:data
+      OTEL.Log_record.make ~severity ?trace_id ?span_id ~attrs:data
         ~observed_time_unix_nano (`String msg)
     in
     OTEL.Exporter.send_logs self.exporter [ log ]
 
-  let counter_int (self : state) ~params:_ ~data:attrs name cur_val : unit =
+  let metric (self : state) ~level:_ ~params:_ ~data:attrs name v : unit =
     let now = OTEL.Clock.now self.clock in
-    let m = OTEL.Metrics.(gauge ~name [ int ~attrs ~now cur_val ]) in
-    OTEL.Exporter.send_metrics self.exporter [ m ]
+    let vals =
+      match v with
+      | Trace_core.Core_ext.Metric_int i -> [ OTEL.Metrics.int ~attrs ~now i ]
+      | Trace_core.Core_ext.Metric_float v ->
+        [ OTEL.Metrics.float ~attrs ~now v ]
+      | _ -> []
+    in
+    if vals <> [] then (
+      let m = OTEL.Metrics.(gauge ~name vals) in
+      OTEL.Exporter.send_metrics self.exporter [ m ]
+    )
 
-  let counter_float (self : state) ~params:_ ~data:attrs name cur_val : unit =
-    let now = OTEL.Clock.now self.clock in
-    let m = OTEL.Metrics.(gauge ~name [ float ~attrs ~now cur_val ]) in
-    OTEL.Exporter.send_metrics self.exporter [ m ]
-
-  let extension (_self : state) ev =
+  let extension (_self : state) ~level:_ ev =
     match ev with
     | Ev_link_span (Span_otel sp1, sc2) ->
       OTEL.Span.add_links sp1 [ OTEL.Span_link.of_span_ctx sc2 ]
@@ -141,7 +157,7 @@ open struct
 
   let callbacks : state Otrace.Collector.Callbacks.t =
     Otrace.Collector.Callbacks.make ~enter_span ~exit_span ~add_data_to_span
-      ~message ~counter_int ~counter_float ~extension ~shutdown ()
+      ~message ~metric ~extension ~shutdown ()
 end
 
 let collector_of_exporter (exporter : OTEL.Exporter.t) : Trace_core.collector =
