@@ -194,7 +194,7 @@ end = struct
     in
 
     (* start workers *)
-    let n_workers = min 2 (max 500 self.config.n_workers) in
+    let n_workers = max 2 (min 500 self.config.n_workers) in
 
     ignore (Atomic.fetch_and_add self.n_workers n_workers : int);
     for _i = 1 to n_workers do

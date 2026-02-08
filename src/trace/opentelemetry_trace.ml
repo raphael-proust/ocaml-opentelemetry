@@ -71,17 +71,27 @@ open struct
     (* add more data if [__FUNCTION__] is present *)
     (match __FUNCTION__ with
     | Some __FUNCTION__ when OTEL.Span.is_not_dummy otel_sp ->
-      let last_dot = String.rindex __FUNCTION__ '.' in
-      let module_path = String.sub __FUNCTION__ 0 last_dot in
-      let function_name =
-        String.sub __FUNCTION__ (last_dot + 1)
-          (String.length __FUNCTION__ - last_dot - 1)
+      let function_name, module_path =
+        try
+          let last_dot = String.rindex __FUNCTION__ '.' in
+          let module_path = String.sub __FUNCTION__ 0 last_dot in
+          let function_name =
+            String.sub __FUNCTION__ (last_dot + 1)
+              (String.length __FUNCTION__ - last_dot - 1)
+          in
+          function_name, Some module_path
+        with Not_found ->
+          (* __FUNCTION__ has no dot, use it as-is *)
+          __FUNCTION__, None
       in
-      OTEL.Span.add_attrs otel_sp
-        [
-          "code.function", `String function_name;
-          "code.namespace", `String module_path;
-        ]
+      let attrs =
+        ("code.function", `String function_name)
+        ::
+        (match module_path with
+        | Some module_path -> [ "code.namespace", `String module_path ]
+        | None -> [])
+      in
+      OTEL.Span.add_attrs otel_sp attrs
     | _ -> ());
 
     Span_otel otel_sp
