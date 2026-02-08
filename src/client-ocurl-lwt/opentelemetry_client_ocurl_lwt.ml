@@ -23,11 +23,11 @@ module Httpc : Generic_http_consumer.HTTPC with module IO = IO = struct
   module IO = IO
   open Lwt.Syntax
 
-  type t = Curl.t
+  type t = Ezcurl_core.t
 
-  let create () : t = Ezcurl_core.make ()
+  let create () : t = Ezcurl_lwt.make ()
 
-  let cleanup self = Ezcurl_core.delete self
+  let cleanup self = Ezcurl_lwt.delete self
 
   (** send the content to the remote endpoint/path *)
   let send (self : t) ~url ~decode (bod : string) : ('a, error) result Lwt.t =

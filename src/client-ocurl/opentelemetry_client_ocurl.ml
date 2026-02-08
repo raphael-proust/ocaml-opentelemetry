@@ -24,7 +24,7 @@ end
 module Httpc : OTELC.Generic_http_consumer.HTTPC with module IO = IO = struct
   module IO = IO
 
-  type t = Curl.t
+  type t = Ezcurl_core.t
 
   let create () = Ezcurl.make ()
 
