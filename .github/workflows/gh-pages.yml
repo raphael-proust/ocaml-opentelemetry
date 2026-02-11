@@ -22,7 +22,7 @@ jobs:
 
       - run: |
           opam pin trace https://github.com/ocaml-tracing/ocaml-trace.git#main -y -n
-          opam pin https://github.com/ocaml-tracing/ambient-context.git#simon/simpler-interface -y -n
+          opam pin https://github.com/ocaml-tracing/ambient-context.git#main -y -n
 
       - name: Deps
         run: opam install odig opentelemetry opentelemetry-lwt opentelemetry-client-ocurl opentelemetry-cohttp-lwt
