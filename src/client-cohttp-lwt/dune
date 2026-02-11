@@ -5,11 +5,19 @@
  (preprocess
   (pps lwt_ppx))
  (libraries
-  opentelemetry
-  opentelemetry.client
-  lwt
-  cohttp-lwt
-  cohttp-lwt-unix
+  (re_export opentelemetry)
+  (re_export opentelemetry-lwt)
+  (re_export opentelemetry-client)
+  (re_export opentelemetry-client.lwt)
+  (re_export opentelemetry-client.sync)
+  (re_export lwt)
+  (re_export lwt.unix)
+  (re_export cohttp-lwt)
+  (re_export cohttp-lwt-unix)
+  (re_export cohttp)
+  (re_export unix)
+  uri
+  threads
   pbrt
   mtime
   mtime.clock.os))

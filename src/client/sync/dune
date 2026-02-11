@@ -1,0 +1,23 @@
+(library
+ (name opentelemetry_client_sync)
+ (public_name opentelemetry-client.sync)
+ (flags
+  :standard
+  -open
+  Opentelemetry_util
+  -open
+  Opentelemetry_client
+  -open
+  Opentelemetry_atomic)
+ (libraries
+  opentelemetry.util
+  opentelemetry.atomic
+  opentelemetry.emitter
+  (re_export opentelemetry.core)
+  (re_export opentelemetry)
+  (re_export opentelemetry-client)
+  (re_export threads)
+  mtime
+  mtime.clock.os
+  unix)
+ (synopsis "Synchronous/threading-related helpers for opentelemetry-client"))

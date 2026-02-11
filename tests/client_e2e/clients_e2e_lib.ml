@@ -6,13 +6,13 @@ module Client = Opentelemetry_client
 module Proto = Opentelemetry.Proto
 open Containers
 
-let batch_size : Client.Signal.t -> int = function
+let batch_size : Client.Resource_signal.t -> int = function
   | Traces ts -> List.length ts
   | Logs ls -> List.length ls
   | Metrics ms -> List.length ms
 
-let avg_batch_size (p : Client.Signal.t -> bool)
-    (batches : Client.Signal.t list) : int =
+let avg_batch_size (p : Client.Resource_signal.t -> bool)
+    (batches : Client.Resource_signal.t list) : int =
   let sum =
     List.fold_left
       (fun acc b ->
@@ -24,7 +24,7 @@ let avg_batch_size (p : Client.Signal.t -> bool)
   in
   sum / List.length batches
 
-let signals_from_batch (signal_batch : Client.Signal.t) =
+let signals_from_batch (signal_batch : Client.Resource_signal.t) =
   match signal_batch with
   | Traces ts -> List.map (fun t -> `Trace t) ts
   | Logs ls -> List.map (fun l -> `Log l) ls
@@ -32,11 +32,12 @@ let signals_from_batch (signal_batch : Client.Signal.t) =
 
 let filter_map_spans f signals =
   signals
-  |> List.filter_map (function
-       | `Log _ | `Metric _ -> None
+  |> CCList.flat_map (function
+       | `Log _ | `Metric _ -> []
        | `Trace (r : Proto.Trace.resource_spans) ->
          r.scope_spans
-         |> List.find_map (fun ss -> ss.Proto.Trace.spans |> List.find_map f))
+         |> CCList.flat_map (fun ss ->
+                ss.Proto.Trace.spans |> List.filter_map f))
 
 let count_spans_with_name name signals =
   signals
@@ -49,12 +50,12 @@ let count_spans_with_name name signals =
 
 let filter_map_metrics f signals =
   signals
-  |> List.filter_map (function
-       | `Log _ | `Trace _ -> None
+  |> CCList.flat_map (function
+       | `Log _ | `Trace _ -> []
        | `Metric (r : Proto.Metrics.resource_metrics) ->
          r.scope_metrics
-         |> List.find_map (fun ss ->
-                ss.Proto.Metrics.metrics |> List.find_map f))
+         |> CCList.flat_map (fun ss ->
+                ss.Proto.Metrics.metrics |> List.filter_map f))
 
 let count_metrics_with_name name signals =
   signals
@@ -90,12 +91,12 @@ let get_metric_values name signals =
 
 let filter_map_logs (f : Proto.Logs.log_record -> 'a option) signals : 'a list =
   signals
-  |> List.filter_map (function
-       | `Metric _ | `Trace _ -> None
+  |> CCList.flat_map (function
+       | `Metric _ | `Trace _ -> []
        | `Log (r : Proto.Logs.resource_logs) ->
          r.scope_logs
-         |> List.find_map (fun ss ->
-                ss.Proto.Logs.log_records |> List.find_map f))
+         |> CCList.flat_map (fun ss ->
+                ss.Proto.Logs.log_records |> List.filter_map f))
 
 let count_logs_with_body p signals =
   signals
@@ -110,13 +111,14 @@ type params = {
   url: string;
   jobs: int;
   procs: int;
+  n_outer: int;
   batch_traces: int;
   batch_metrics: int;
   batch_logs: int;
   iterations: int;
 }
 
-let cmd exec params =
+let cmd exec params : string list =
   [
     exec;
     "-j";
@@ -125,6 +127,8 @@ let cmd exec params =
     string_of_int params.procs;
     "--url";
     params.url;
+    "-n";
+    string_of_int params.n_outer;
     "--iterations";
     string_of_int params.iterations;
     "--batch-traces";
@@ -151,21 +155,23 @@ let tests params signal_batches =
           ~msg:
             "number of occurrences should equal the configured jobs * the \
              configured processes"
-          ~expected:(params.jobs * params.procs)
+          ~expected:(params.jobs * params.procs * params.n_outer)
           ~actual:(count_spans_with_name "loop.outer" signals));
     test "loop.inner spans" (fun () ->
         Alcotest.(check' int)
           ~msg:
             "number of occurrences should equal the configured jobs * the  \
              configured iterations * configured processes"
-          ~expected:(params.jobs * params.iterations * params.procs)
+          ~expected:
+            (params.jobs * params.iterations * params.procs * params.n_outer)
           ~actual:(count_spans_with_name "loop.inner" signals));
     test "alloc spans" (fun () ->
         Alcotest.(check' int)
           ~msg:
             "number of occurrences should equal the configured jobs * the  \
              configured iterations * configured processes"
-          ~expected:(params.jobs * params.iterations * params.procs)
+          ~expected:
+            (params.jobs * params.iterations * params.procs * params.n_outer)
           ~actual:(count_spans_with_name "alloc" signals);
         Alcotest.(check' bool)
           ~msg:"should have 'done with alloc' event" ~expected:true
@@ -193,9 +199,10 @@ let tests params signal_batches =
     test "logs" (fun () ->
         Alcotest.(check' int)
           ~msg:
-            "should record jobs * iterations occurrences * configured \
+            "should record jobs * iterations occurrences * configured * n \
              processes of 'inner at n'"
-          ~expected:(params.jobs * params.iterations * params.procs)
+          ~expected:
+            (params.jobs * params.iterations * params.procs * params.n_outer)
           ~actual:
             (signals
             |> count_logs_with_body (function
@@ -205,16 +212,19 @@ let tests params signal_batches =
                  | _ -> false)));
   ]
 
-let run_tests ~port cmds =
+let run_tests ~port (cmds : _ list) : unit =
   let suites =
-    cmds
-    |> List.map (fun (exec, params) ->
+    let open Lwt.Syntax in
+    Lwt_main.run
+    @@ Lwt_list.map_s
+         (fun (exec, params) ->
            let cmd = cmd exec params in
-           let name = cmd |> String.concat " " in
-           let signal_batches = Signal_gatherer.gather_signals ~port cmd in
+           let name = Printf.sprintf "'test: %s'" (String.concat " " cmd) in
+           let* signal_batches = Signal_gatherer.gather_signals ~port cmd in
            (* Let server reset *)
-           Unix.sleep 1;
-           name, tests params signal_batches)
+           let* () = Lwt_unix.sleep 1. in
+           Lwt.return (name, tests params signal_batches))
+         cmds
   in
   let open Alcotest in
   run "Collector integration tests" suites

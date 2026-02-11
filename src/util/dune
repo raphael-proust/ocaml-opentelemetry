@@ -1,0 +1,11 @@
+(library
+ (name opentelemetry_util)
+ (public_name opentelemetry.util)
+ (flags :standard -open Opentelemetry_atomic)
+ (libraries
+  (re_export opentelemetry.atomic)
+  ptime
+  (re_export threads)
+  (re_export threads.posix)
+  opentelemetry.domain)
+ (synopsis "Basic utilities for opentelemetry"))

@@ -1,7 +1,7 @@
 (* A runs tests against a OTel-instrumented program  *)
 
 module Client = Opentelemetry_client
-module Signal = Client.Signal
+module Signal = Client.Resource_signal
 open Lwt.Syntax
 
 let debug =
@@ -111,14 +111,12 @@ module Tested_program = struct
 end
 
 let default_port =
-  String.split_on_char ':' Client.Config.default_url |> function
+  String.split_on_char ':' Client.Http_config.default_url |> function
   (* Extracting the port from 'http://foo:<port>' *)
   | [ _; _; port ] -> int_of_string port
   | _ -> failwith "unexpected format in Client.Config.default_url"
 
-let gather_signals ?(port = default_port) program_to_test =
-  Lwt_main.run
-  @@
+let gather_signals ?(port = default_port) program_to_test : _ Lwt.t =
   let stream, push = Lwt_stream.create () in
   let* () =
     Lwt.pick [ Server.run port push; Tested_program.run program_to_test ]
@@ -128,14 +126,22 @@ let gather_signals ?(port = default_port) program_to_test =
   Lwt_stream.to_list stream
 
 (* Just run the server, and print the signals gathered. *)
-let run ?(port = default_port) () =
-  Lwt_main.run
-  @@
+let run ?(port = default_port) () : _ Lwt.t =
   let stream, push = Lwt_stream.create () in
   Lwt.join
     [
       Server.run port push;
       Lwt_stream.iter_s
-        (fun s -> Format.asprintf "%a" Signal.Pp.pp s |> Lwt_io.printl)
+        (fun s ->
+          let open Lwt.Syntax in
+          let printed = Format.asprintf "%a" Signal.Pp.pp s in
+
+          (* redact current ocaml version, for expect tests *)
+          let printed =
+            CCString.replace ~which:`All ~sub:Sys.ocaml_version
+              ~by:"ocaml_version" printed
+          in
+          let* () = Lwt_io.printl printed in
+          Lwt_io.flush Lwt_io.stdout)
         stream;
     ]

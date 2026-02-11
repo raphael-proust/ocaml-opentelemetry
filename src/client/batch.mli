@@ -1,11 +1,11 @@
-(** A thread-safe batch of resources to be popper when ready . *)
+(** A thread-safe batch of resources, to be sent together when ready. *)
 
 type 'a t
 
 val make :
   ?batch:int ->
   ?high_watermark:int ->
-  ?now:Mtime.t ->
+  ?mtime:Mtime.t ->
   ?timeout:Mtime.span ->
   unit ->
   'a t
@@ -13,8 +13,7 @@ val make :
 
     @param batch
       the number of elements after which the batch will be considered {b full},
-      and ready to pop. Set to [0] to disable batching. It is required that
-      [batch >= 0]. Default [1].
+      and ready to pop. It is required that [batch >= 0]. Default [100].
 
     @param high_watermark
       the batch size limit after which new elements will be [`Dropped] by
@@ -22,15 +21,15 @@ val make :
       transmission in case of signal floods. Default
       [if batch = 1 then 100 else batch * 10].
 
-    @param now the current time. Default [Mtime_clock.now ()].
+    @param mtime the current time.
 
     @param timeout
       the time span after which a batch is ready to pop, whether or not it is
       {b full}. *)
 
-val pop_if_ready : ?force:bool -> now:Mtime.t -> 'a t -> 'a list option
-(** [pop_if_ready ~now b] is [Some xs], where is [xs] includes all the elements
-    {!push}ed since the last batch, if the batch ready to be emitted.
+val pop_if_ready : ?force:bool -> mtime:Mtime.t -> 'a t -> 'a list option
+(** [pop_if_ready ~mtime b] is [Some xs], where is [xs] includes all the
+    elements {!push}ed since the last batch, if the batch ready to be emitted.
 
     A batch is ready to pop if it contains some elements and
 
@@ -40,7 +39,7 @@ val pop_if_ready : ?force:bool -> now:Mtime.t -> 'a t -> 'a list option
       the last pop was ready, or
     - the pop is [force]d,
 
-    @param now the current time
+    @param mtime the current monotonic time
 
     @param force
       override the other batch conditions, for when when we just want to emit
@@ -50,3 +49,17 @@ val push : 'a t -> 'a list -> [ `Dropped | `Ok ]
 (** [push b xs] is [`Ok] if it succeeds in pushing the values in [xs] into the
     batch [b], or [`Dropped] if the current size of the batch has exceeded the
     high water mark determined by the [batch] argument to [{!make}]. ) *)
+
+val push' : 'a t -> 'a list -> unit
+(** Like {!push} but ignores the result *)
+
+val cur_size : _ t -> int
+(** Number of elements in the current batch *)
+
+(**/**)
+
+module Internal_ : sig
+  val mtime_dummy_ : Mtime.t
+end
+
+(**/**)

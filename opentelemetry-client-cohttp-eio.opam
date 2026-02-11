@@ -17,7 +17,9 @@ depends: [
   "mtime" {>= "1.4"}
   "ca-certs"
   "mirage-crypto-rng-eio"
+  "ambient-context-eio"
   "opentelemetry" {= version}
+  "opentelemetry-client" {= version}
   "odoc" {with-doc}
   "cohttp-eio" {>= "6.1.0"}
   "eio_main" {with-test}

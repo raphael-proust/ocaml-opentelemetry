@@ -2,5 +2,11 @@
  (name opentelemetry_trace)
  (public_name opentelemetry.trace)
  (synopsis "Use opentelemetry as a collector for trace")
- (optional)
- (libraries opentelemetry.ambient-context trace.core opentelemetry))
+ (optional) ; trace
+ (flags :standard -open Opentelemetry_util -open Opentelemetry_atomic)
+ (libraries
+  (re_export opentelemetry.ambient-context)
+  (re_export opentelemetry.util)
+  opentelemetry.atomic
+  (re_export opentelemetry)
+  (re_export trace.core)))

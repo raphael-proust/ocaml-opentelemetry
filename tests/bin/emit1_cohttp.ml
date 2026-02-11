@@ -12,90 +12,93 @@ let sleep_outer = ref 2.0
 
 let n_jobs = ref 1
 
+let n = ref max_int
+
 let iterations = ref 1
 
 let num_sleep = Atomic.make 0
 
 let stress_alloc_ = ref true
 
-let stop = Atomic.make false
-
 let num_tr = Atomic.make 0
 
-(* Counter used to mark simulated failures *)
-let i = ref 0
-
 let run_job job_id : unit Lwt.t =
-  while%lwt not @@ Atomic.get stop do
+  let i = ref 0 in
+  while%lwt T.Aswitch.is_on (T.Main_exporter.active ()) && !i < !n do
+    (* Printf.eprintf "test: run outer loop job_id=%d i=%d\n%!" job_id !i; *)
     let@ scope =
       Atomic.incr num_tr;
-      T.Trace.with_ ~kind:T.Span.Span_kind_producer "loop.outer"
-        ~attrs:[ "i", `Int job_id ]
+      T.Tracer.with_ ~kind:T.Span.Span_kind_producer "loop.outer"
+        ~attrs:[ "i", `Int !i; "job_id", `Int job_id ]
     in
 
-    for%lwt j = 0 to !iterations do
-      if j >= !iterations then
-        (* Terminate program, having reached our max iterations *)
-        Lwt.return @@ Atomic.set stop true
-      else
-        (* parent scope is found via thread local storage *)
-        let@ scope =
-          Atomic.incr num_tr;
-          T.Trace.with_ ~scope ~kind:T.Span.Span_kind_internal
-            ~attrs:[ "j", `Int j ]
-            "loop.inner"
+    incr i;
+
+    for%lwt j = 1 to !iterations do
+      (* parent scope is found via thread local storage *)
+      (* Printf.eprintf "test: run inner loop job_id=%d i=%d j=%d\n%!" job_id !i j; *)
+      let@ span =
+        Atomic.incr num_tr;
+        T.Tracer.with_ ~parent:scope ~kind:T.Span.Span_kind_internal
+          ~attrs:[ "j", `Int j ]
+          "loop.inner"
+      in
+
+      let* () = Lwt_unix.sleep !sleep_outer in
+      Atomic.incr num_sleep;
+
+      T.Logger.logf ~trace_id:(T.Span.trace_id span) ~span_id:(T.Span.id span)
+        ~severity:Severity_number_info (fun k -> k "inner at %d" j);
+      try%lwt
+        Atomic.incr num_tr;
+        (* allocate some stuff *)
+        let%lwt () =
+          if !stress_alloc_ then (
+            let@ scope =
+              T.Tracer.with_ ~kind:T.Span.Span_kind_internal ~parent:span
+                "alloc"
+            in
+            let _arr = Sys.opaque_identity @@ Array.make (25 * 25551) 42.0 in
+            ignore _arr;
+            T.Span.add_event scope (T.Event.make "done with alloc");
+            Lwt.return ()
+          ) else
+            Lwt.return ()
         in
 
-        let* () = Lwt_unix.sleep !sleep_outer in
+        let* () = Lwt_unix.sleep !sleep_inner in
         Atomic.incr num_sleep;
 
-        T.Logs.(
-          emit
-            [
-              make_strf ~trace_id:scope.trace_id ~span_id:scope.span_id
-                ~severity:Severity_number_info "inner at %d" j;
-            ]);
-
-        incr i;
-
-        try%lwt
-          Atomic.incr num_tr;
-          let@ scope =
-            T.Trace.with_ ~kind:T.Span.Span_kind_internal ~scope "alloc"
-          in
-          (* allocate some stuff *)
-          if !stress_alloc_ then (
-            let _arr = Sys.opaque_identity @@ Array.make (25 * 25551) 42.0 in
-            ignore _arr
-          );
-
-          let* () = Lwt_unix.sleep !sleep_inner in
-          Atomic.incr num_sleep;
-
-          (* simulate a failure *)
-          if j = 4 && !i mod 13 = 0 then failwith "oh no";
-
-          Opentelemetry.Scope.add_event scope (fun () ->
-              T.Event.make "done with alloc");
+        (* simulate a failure *)
+        if j = 4 && !i mod 13 = 0 then
+          Lwt.fail (Failure "oh no")
+        else
           Lwt.return ()
-        with Failure _ -> Lwt.return ()
+      with Failure _ -> Lwt.return ()
     done
   done
+(* >>= fun () ->
+   Printf.eprintf "test: job done\n%!"; 
+  Lwt.return ()*)
 
 let run () : unit Lwt.t =
-  T.GC_metrics.basic_setup ();
+  T.Gc_metrics.setup_on_main_exporter ();
 
-  T.Metrics_callbacks.register (fun () ->
-      T.Metrics.
-        [
-          sum ~name:"num-sleep" ~is_monotonic:true
-            [ int (Atomic.get num_sleep) ];
-        ]);
+  T.Metrics_callbacks.(
+    with_set_added_to_main_exporter (fun set ->
+        add_metrics_cb set (fun () ->
+            let now = T.Clock.now_main () in
+            T.Metrics.
+              [
+                sum ~name:"num-sleep" ~is_monotonic:true
+                  [ int ~now (Atomic.get num_sleep) ];
+              ])));
 
   let n_jobs = max 1 !n_jobs in
-  Printf.printf "run %d jobs\n%!" n_jobs;
+  (* Printf.printf "run %d jobs\n%!" n_jobs; *)
 
   let jobs = List.init n_jobs run_job in
+  (* Printf.eprintf "test: joining jobs\n%!"; *)
   Lwt.join jobs
 
 let () =
@@ -108,6 +111,7 @@ let () =
   let batch_traces = ref 400 in
   let batch_metrics = ref 3 in
   let batch_logs = ref 400 in
+  let self_trace = ref true in
   let url = ref None in
   let n_procs = ref 1 in
   let opts =
@@ -126,9 +130,13 @@ let () =
       "--batch-logs", Arg.Int (( := ) batch_logs), " size of logs batch";
       "--sleep-inner", Arg.Set_float sleep_inner, " sleep (in s) in inner loop";
       "--sleep-outer", Arg.Set_float sleep_outer, " sleep (in s) in outer loop";
-      "--iterations", Arg.Set_int iterations, " the number of iterations to run";
+      ( "--iterations",
+        Arg.Set_int iterations,
+        " the number of inner iterations to run" );
       "-j", Arg.Set_int n_jobs, " number of parallel jobs";
-      "--procs", Arg.Set_int n_procs, " number of processes";
+      "-n", Arg.Set_int n, " number of outer iterations (default ∞)";
+      "--self-trace", Arg.Bool (( := ) self_trace), " self tracing";
+      "--procs", Arg.Set_int n_procs, " number of processes (stub)";
     ]
     |> Arg.align
   in
@@ -148,6 +156,7 @@ let () =
   in
   let config =
     Opentelemetry_client_cohttp_lwt.Config.make ~debug:!debug ?url:!url
+      ~self_trace:!self_trace
       ~batch_traces:(some_if_nzero batch_traces)
       ~batch_metrics:(some_if_nzero batch_metrics)
       ~batch_logs:(some_if_nzero batch_logs) ()
@@ -162,5 +171,4 @@ let () =
         Printf.printf "\ndone. %d spans in %.4fs (%.4f/s)\n%!"
           (Atomic.get num_tr) elapsed n_per_sec)
   in
-  Opentelemetry_client_cohttp_lwt.with_setup ~stop ~config () run
-  |> Lwt_main.run
+  Opentelemetry_client_cohttp_lwt.with_setup ~config () run |> Lwt_main.run

@@ -10,18 +10,31 @@ val set_headers : (string * string) list -> unit
 
 module Config = Config
 
-val create_backend :
-  sw:Eio.Switch.t ->
-  ?stop:bool Atomic.t ->
+val create_consumer :
   ?config:Config.t ->
-  Eio_unix.Stdenv.base ->
-  (module Opentelemetry.Collector.BACKEND)
-(** Create a new backend using Cohttp_eio
+  sw:Eio.Switch.t ->
+  env:Eio_unix.Stdenv.base ->
+  unit ->
+  Opentelemetry_client.Consumer.any_signal_l_builder
+(** Consumer that pulls from a queue *)
 
-    NOTE [after_cleanup] optional parameter removed @since 0.12 *)
+val create_exporter :
+  ?config:Config.t ->
+  sw:Eio.Switch.t ->
+  env:Eio_unix.Stdenv.base ->
+  unit ->
+  Opentelemetry.Exporter.t
+(** NOTE [after_cleanup] optional parameter removed @since 0.12 *)
+
+val create_backend :
+  ?config:Config.t ->
+  sw:Eio.Switch.t ->
+  env:Eio_unix.Stdenv.base ->
+  unit ->
+  Opentelemetry.Exporter.t
+[@@deprecated "use create_exporter"]
 
 val setup :
-  ?stop:bool Atomic.t ->
   ?config:Config.t ->
   ?enable:bool ->
   sw:Eio.Switch.t ->
@@ -36,16 +49,15 @@ val setup :
       an atomic boolean. When it becomes true, background threads will all stop
       after a little while. *)
 
-val remove_backend : unit -> unit
-(** Shutdown current backend
+val remove_exporter : unit -> unit
+(** Shutdown current exporter
     @since 0.12 *)
 
+val remove_backend : unit -> unit
+[@@deprecated "use remove_exporter"]
+(** @since 0.12 *)
+
 val with_setup :
-  ?stop:bool Atomic.t ->
-  ?config:Config.t ->
-  ?enable:bool ->
-  (unit -> 'a) ->
-  Eio_unix.Stdenv.base ->
-  'a
+  ?config:Config.t -> ?enable:bool -> Eio_unix.Stdenv.base -> (unit -> 'a) -> 'a
 (** [with_setup () f] is like [setup(); f()] but takes care of cleaning up after
     [f()] returns See {!setup} for more details. *)

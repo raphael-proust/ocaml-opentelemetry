@@ -9,6 +9,8 @@
 
 (version 0.12)
 
+(implicit_transitive_deps false)
+
 (authors "the Imandra team and contributors")
 
 (maintainers
@@ -28,17 +30,14 @@
    (>= "4.08"))
   ptime
   hmap
-  atomic
-  (thread-local-storage
-   (and
-    (>= 0.2)
-    (< 0.3)))
   (odoc :with-doc)
   (alcotest :with-test)
   (pbrt
    (and
     (>= 4.0)
     (< 5.0)))
+  (ambient-context
+   (>= 0.2))
   (ocaml-lsp-server :with-dev-setup)
   (ocamlformat
    (and
@@ -46,13 +45,28 @@
     (>= 0.27)
     (< 0.28)))
   (mtime
-    (>= "1.4")))
- (depopts trace lwt eio)
+   (>= "1.4")))
+ (depopts atomic trace thread-local-storage lwt eio picos)
  (conflicts
   (trace
-   (< 0.10)))
+   (< 0.99)))
  (tags
   (instrumentation tracing opentelemetry datadog jaeger)))
+
+(package
+ (name opentelemetry-client)
+ (synopsis "Client SDK for https://opentelemetry.io")
+ (depends
+  (opentelemetry
+   (= :version))
+  (odoc :with-doc)
+  (alcotest :with-test)
+  (thread-local-storage
+   (and
+    (>= 0.2)
+    (< 0.3))))
+ (tags
+  (tracing opentelemetry sdk)))
 
 (package
  (name opentelemetry-lwt)
@@ -62,6 +76,7 @@
    (>= "4.08"))
   (opentelemetry
    (= :version))
+  ambient-context-lwt
   (cohttp-lwt-unix :with-test)
   (odoc :with-doc)
   (lwt
@@ -83,6 +98,8 @@
   ; atomic ; vendored
   (opentelemetry
    (= :version))
+  (opentelemetry-client
+   (= :version))
   (odoc :with-doc)
   (ezcurl
    (>= 0.2.3))
@@ -98,6 +115,8 @@
   (mtime
    (>= "1.4"))
   (opentelemetry
+   (= :version))
+  (opentelemetry-client
    (= :version))
   (odoc :with-doc)
   (ezcurl-lwt
@@ -124,10 +143,14 @@
   (containers :with-test)
   (cohttp-lwt-unix :with-test)
   (opentelemetry-client-cohttp-lwt
-   (and :with-test (= :version)))
+   (and
+    :with-test
+    (= :version)))
   (opentelemetry-cohttp-lwt
-   (and :with-test (= :version))))
- (synopsis "Opentelemetry tracing for Cohttp HTTP servers"))
+   (and
+    :with-test
+    (= :version))))
+ (synopsis "Opentelemetry-based reporter for Logs"))
 
 (package
  (name opentelemetry-cohttp-lwt)
@@ -138,9 +161,12 @@
    (= :version))
   (opentelemetry-lwt
    (= :version))
+  ambient-context-lwt
   (odoc :with-doc)
   (lwt
    (>= "5.3"))
+  (cohttp
+   (>= "6.0.0"))
   (cohttp-lwt
    (>= "6.0.0"))
   (alcotest :with-test))
@@ -156,6 +182,9 @@
   ; for spans
   (opentelemetry
    (= :version))
+  (opentelemetry-client
+   (= :version))
+  ambient-context-lwt
   (odoc :with-doc)
   (lwt
    (>= "5.3"))
@@ -165,7 +194,10 @@
   cohttp-lwt-unix
   (alcotest :with-test)
   (containers :with-test)
-  (opentelemetry-lwt (and :with-test (= :version))))
+  (opentelemetry-lwt
+   (and
+    :with-test
+    (= :version))))
  (synopsis "Collector client for opentelemetry, using cohttp + lwt"))
 
 (package
@@ -177,7 +209,10 @@
    (>= "1.4"))
   ca-certs
   mirage-crypto-rng-eio
+  ambient-context-eio
   (opentelemetry
+   (= :version))
+  (opentelemetry-client
    (= :version))
   (odoc :with-doc)
   (cohttp-eio

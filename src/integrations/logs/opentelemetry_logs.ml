@@ -1,4 +1,4 @@
-module Otel = Opentelemetry
+module OTEL = Opentelemetry
 
 (*****************************************************************************)
 (* Prelude *)
@@ -10,14 +10,14 @@ module Otel = Opentelemetry
 (*****************************************************************************)
 (* Levels *)
 (*****************************************************************************)
-(* Convert log level to Otel severity *)
-let log_level_to_severity (level : Logs.level) : Otel.Logs.severity =
+(* Convert log level to OTEL severity *)
+let log_level_to_severity (level : Logs.level) : OTEL.Log_record.severity =
   match level with
-  | Logs.App -> Otel.Logs.Severity_number_info (* like info, but less severe  *)
-  | Logs.Info -> Otel.Logs.Severity_number_info2
-  | Logs.Error -> Otel.Logs.Severity_number_error
-  | Logs.Warning -> Otel.Logs.Severity_number_warn
-  | Logs.Debug -> Otel.Logs.Severity_number_debug
+  | Logs.App -> Severity_number_info (* like info, but less severe  *)
+  | Logs.Info -> Severity_number_info2
+  | Logs.Error -> Severity_number_error
+  | Logs.Warning -> Severity_number_warn
+  | Logs.Debug -> Severity_number_debug
 
 (*****************************************************************************)
 (* Logs Util *)
@@ -34,21 +34,22 @@ let emit_telemetry do_emit = Logs.Tag.(empty |> add emit_telemetry_tag do_emit)
 (*****************************************************************************)
 
 (* Log a message to otel with some attrs *)
-let log ?service_name ?(attrs = []) ?(scope = Otel.Scope.get_ambient_scope ())
-    ~level msg =
+let log ?(logger = OTEL.Logger.dynamic_main) ?attrs
+    ?(scope = OTEL.Ambient_span.get ()) ~level msg =
   let log_level = Logs.level_to_string (Some level) in
-  let span_id =
-    Option.map (fun (scope : Otel.Scope.t) -> scope.span_id) scope
-  in
-  let trace_id =
-    Option.map (fun (scope : Otel.Scope.t) -> scope.trace_id) scope
-  in
+  let span_id = Option.map OTEL.Span.id scope in
+  let trace_id = Option.map OTEL.Span.trace_id scope in
   let severity = log_level_to_severity level in
-  let log = Otel.Logs.make_str ~severity ~log_level ?trace_id ?span_id msg in
-  (* Noop if no backend is set *)
-  Otel.Logs.emit ?service_name ~attrs [ log ]
+  let log =
+    let observed_time_unix_nano = OTEL.Clock.now logger.clock in
+    OTEL.Log_record.make_str ~observed_time_unix_nano ~severity ~log_level
+      ?attrs ?trace_id ?span_id msg
+  in
 
-let otel_reporter ?service_name ?(attributes = []) () : Logs.reporter =
+  (* Noop if no backend is set *)
+  OTEL.Logger.emit1 logger log
+
+let otel_reporter ?(attributes = []) () : Logs.reporter =
   let report src level ~over k msgf =
     msgf (fun ?header ?(tags : Logs.Tag.set option) fmt ->
         let k _ =
@@ -92,13 +93,13 @@ let otel_reporter ?service_name ?(attributes = []) () : Logs.reporter =
             let do_emit =
               Option.value ~default:true (Logs.Tag.find emit_telemetry_tag tags)
             in
-            if do_emit then log ?service_name ~attrs ~level msg;
+            if do_emit then log ~attrs ~level msg;
             k ())
           fmt)
   in
   { Logs.report }
 
-let attach_otel_reporter ?service_name ?attributes reporter =
+let attach_otel_reporter ?attributes reporter =
   (* Copied directly from the Logs.mli docs. Just calls a bunch of reporters in a
    row *)
   let combine r1 r2 =
@@ -108,5 +109,5 @@ let attach_otel_reporter ?service_name ?attributes reporter =
     in
     { Logs.report }
   in
-  let otel_reporter = otel_reporter ?service_name ?attributes () in
+  let otel_reporter = otel_reporter ?attributes () in
   combine reporter otel_reporter

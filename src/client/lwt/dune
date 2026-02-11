@@ -1,0 +1,27 @@
+(library
+ (name opentelemetry_client_lwt)
+ (public_name opentelemetry-client.lwt)
+ (flags
+  :standard
+  -open
+  Opentelemetry_util
+  -open
+  Opentelemetry_client
+  -open
+  Opentelemetry_atomic)
+ (optional) ; lwt
+ (libraries
+  opentelemetry.util
+  opentelemetry.atomic
+  opentelemetry.emitter
+  (re_export opentelemetry.core)
+  (re_export opentelemetry)
+  (re_export opentelemetry.ambient-context)
+  ambient-context-lwt
+  (re_export opentelemetry-client)
+  (re_export lwt)
+  threads
+  mtime
+  mtime.clock.os
+  lwt.unix)
+ (synopsis "Lwt-specific helpers for opentelemetry-client"))

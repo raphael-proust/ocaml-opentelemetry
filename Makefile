@@ -13,6 +13,16 @@ clean:
 protoc-gen:
 	FORCE_GENPROTO=true dune build @lint
 
+update-submodules:
+	git submodule update --init
+
+doc:
+	@dune build @doc
+
+PACKAGES=$(shell opam show . -f name)
+odig-doc:
+	@odig odoc --cache-dir=_doc/ $(PACKAGES)
+
 format:
 	@dune build @fmt --auto-promote
 

@@ -16,6 +16,7 @@ depends: [
   "dune" {>= "2.9"}
   "ocaml" {>= "4.08"}
   "opentelemetry" {= version}
+  "ambient-context-lwt"
   "cohttp-lwt-unix" {with-test}
   "odoc" {with-doc}
   "lwt" {>= "5.3"}

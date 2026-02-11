@@ -42,8 +42,10 @@ jobs:
           allow-prerelease-opam: true
 
       - run: |
-          opam pin pbrt 4.0 -y -n
-          opam install pbrt -y
+          opam pin trace https://github.com/ocaml-tracing/ocaml-trace.git#main -y -n
+          opam pin https://github.com/ocaml-tracing/ambient-context.git#simon/simpler-interface -y -n
+          opam install pbrt.4.0 -y
+          opam install ambient-context
 
       # We cannot install packages that need eio on ocaml versions before 5
       - run: |
@@ -55,9 +57,8 @@ jobs:
       - run: opam install . --deps-only --with-test --solver=mccs
         if: ${{ startsWith(matrix.ocaml-compiler, '5') }}
 
-      - run: opam exec -- dune build @install -p opentelemetry,opentelemetry-lwt,opentelemetry-client-ocurl,opentelemetry-cohttp-lwt,opentelemetry-client-cohttp-lwt,opentelemetry-logs
+      - run: opam exec -- dune build @install -p opentelemetry,opentelemetry-client,opentelemetry-lwt,opentelemetry-client-ocurl,opentelemetry-cohttp-lwt,opentelemetry-client-cohttp-lwt,opentelemetry-logs
 
-      - run: opam pin trace --dev -y -n
       - run: opam install trace
       - run: opam exec -- dune build @install -p opentelemetry
 

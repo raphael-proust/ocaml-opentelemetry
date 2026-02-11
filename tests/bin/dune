@@ -3,9 +3,34 @@
  (modules emit1)
  (libraries
   unix
+  threads
   opentelemetry
-  opentelemetry.client
+  opentelemetry-client
   opentelemetry-client-ocurl))
+
+(executable
+ (name emit1_ocurl_lwt)
+ (modules emit1_ocurl_lwt)
+ (preprocess
+  (pps lwt_ppx))
+ (libraries
+  threads
+  lwt
+  lwt.unix
+  unix
+  opentelemetry
+  opentelemetry-client
+  opentelemetry-client-ocurl-lwt))
+
+(executable
+ (name emit1_stdout)
+ (modules emit1_stdout)
+ (libraries
+  unix
+  threads
+  opentelemetry
+  opentelemetry-client
+  opentelemetry-client.sync))
 
 (executable
  (name emit1_cohttp)
@@ -14,9 +39,10 @@
   (pps lwt_ppx))
  (libraries
   unix
+  threads
   opentelemetry
   opentelemetry-lwt
-  opentelemetry.client
+  opentelemetry-client
   opentelemetry-client-cohttp-lwt
   lwt.unix))
 
@@ -32,7 +58,8 @@
   logs.fmt
   logs.threaded
   opentelemetry
-  opentelemetry.client
+  opentelemetry-lwt
+  opentelemetry-client
   opentelemetry-client-cohttp-eio))
 
 (executable
@@ -42,17 +69,24 @@
   (pps lwt_ppx))
  (libraries
   cohttp-lwt-unix
-  opentelemetry
+  opentelemetry-lwt
   opentelemetry-client-cohttp-lwt
   opentelemetry-cohttp-lwt
   opentelemetry-logs
-  logs))
+  logs
+  unix
+  lwt.unix
+  logs.fmt))
 
 (executable
  (name cohttp_client)
  (modules cohttp_client)
  (libraries
   cohttp-lwt-unix
+  lwt
+  lwt.unix
+  unix
+  uri
   opentelemetry
   opentelemetry-client-cohttp-lwt
   opentelemetry-cohttp-lwt))

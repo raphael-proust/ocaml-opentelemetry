@@ -1,41 +1,55 @@
-open Opentelemetry
-open Lwt.Syntax
-module Span_id = Span_id
-module Trace_id = Trace_id
-module Event = Event
-module Span = Span
-module Span_link = Span_link
-module Globals = Globals
-module Timestamp_ns = Timestamp_ns
-module GC_metrics = GC_metrics
-module Metrics_callbacks = Metrics_callbacks
-module Trace_context = Trace_context
+include Opentelemetry
+
+(** Setup Lwt as the ambient context *)
+let setup_ambient_context () =
+  Opentelemetry_ambient_context.set_current_storage Ambient_context_lwt.storage
+
+module Main_exporter = struct
+  include Main_exporter
+
+  let remove () : unit Lwt.t =
+    let p, resolve = Lwt.wait () in
+    remove () ~on_done:(fun () -> Lwt.wakeup_later resolve ());
+    p
+end
 
 external reraise : exn -> 'a = "%reraise"
 (** This is equivalent to [Lwt.reraise]. We inline it here so we don't force to
     use Lwt's latest version *)
 
-module Trace = struct
-  include Trace
+module Tracer = struct
+  include Tracer
 
   (** Sync span guard *)
-  let with_ ?force_new_trace_id ?trace_state ?service_name ?attrs ?kind
-      ?trace_id ?parent ?scope ?links name (cb : Scope.t -> 'a Lwt.t) : 'a Lwt.t
-      =
+  let with_ (type a) ?(tracer = dynamic_main) ?force_new_trace_id ?trace_state
+      ?attrs ?kind ?trace_id ?parent ?links name (cb : Span.t -> a Lwt.t) :
+      a Lwt.t =
+    let open Lwt.Syntax in
     let thunk, finally =
-      with_' ?force_new_trace_id ?trace_state ?service_name ?attrs ?kind
-        ?trace_id ?parent ?scope ?links name cb
+      with_thunk_and_finally tracer ?force_new_trace_id ?trace_state ?attrs
+        ?kind ?trace_id ?parent ?links name cb
     in
 
-    try%lwt
-      let* rv = thunk () in
-      let () = finally (Ok ()) in
-      Lwt.return rv
-    with e ->
-      let bt = Printexc.get_raw_backtrace () in
-      let () = finally (Error (e, bt)) in
-      reraise e
+    let* r =
+      Lwt.catch
+        (fun () ->
+          let+ res = thunk () in
+          Ok res)
+        (fun exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Lwt.return (Error (exn, bt)))
+    in
+
+    match r with
+    | Ok r ->
+      finally (Ok ());
+      Lwt.return r
+    | Error (exn, bt) ->
+      finally (Error (exn, bt));
+      Lwt.fail exn
 end
+
+module Trace = Tracer [@@deprecated "use Tracer"]
 
 module Metrics = struct
   include Metrics
@@ -43,5 +57,6 @@ end
 
 module Logs = struct
   include Proto.Logs
-  include Logs
+  include Log_record
+  include Logger
 end
