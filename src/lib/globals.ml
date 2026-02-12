@@ -4,7 +4,11 @@ open Common_
 open Proto.Common
 
 (** Main service name metadata *)
-let service_name = ref "unknown_service"
+let service_name =
+  ref
+    (match Sys.getenv_opt "OTEL_SERVICE_NAME" with
+    | Some name -> name
+    | None -> "unknown_service")
 
 (** Namespace for the service *)
 let service_namespace = ref None

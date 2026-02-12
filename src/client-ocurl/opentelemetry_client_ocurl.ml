@@ -8,10 +8,6 @@ module OTELC = Opentelemetry_client
 module OTEL = Opentelemetry
 open Common_
 
-let get_headers = Config.Env.get_headers
-
-let set_headers = Config.Env.set_headers
-
 let n_bytes_sent : int Atomic.t = Atomic.make 0
 
 type error = OTELC.Export_error.t
@@ -30,12 +26,13 @@ module Httpc : OTELC.Generic_http_consumer.HTTPC with module IO = IO = struct
 
   let cleanup = Ezcurl.delete
 
-  let send (self : t) ~url ~decode (bod : string) : ('a, error) result =
+  let send (self : t) ~url ~headers:user_headers ~decode (bod : string) :
+      ('a, error) result =
     let r =
       let headers =
         ("Content-Type", "application/x-protobuf")
         :: ("Accept", "application/x-protobuf")
-        :: Config.Env.get_headers ()
+        :: user_headers
       in
       Ezcurl.post ~client:self ~headers ~params:[] ~url ~content:(`String bod)
         ()

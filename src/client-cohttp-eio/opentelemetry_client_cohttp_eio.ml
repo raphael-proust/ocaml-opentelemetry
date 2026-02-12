@@ -9,10 +9,6 @@ open Opentelemetry_client
 
 let spf = Printf.sprintf
 
-let set_headers = Config.Env.set_headers
-
-let get_headers = Config.Env.get_headers
-
 module Make (CTX : sig
   val sw : Eio.Switch.t
 
@@ -91,13 +87,13 @@ struct
     let cleanup = ignore
 
     (* send the content to the remote endpoint/path *)
-    let send (client : t) ~url ~decode (body : string) :
+    let send (client : t) ~url ~headers:user_headers ~decode (body : string) :
         ('a, Export_error.t) result =
       Eio.Switch.run @@ fun sw ->
       let uri = Uri.of_string url in
 
       let open Cohttp in
-      let headers = Header.(add_list (init ()) (Config.Env.get_headers ())) in
+      let headers = Header.(add_list (init ()) user_headers) in
       let headers =
         Header.(add headers "Content-Type" "application/x-protobuf")
       in

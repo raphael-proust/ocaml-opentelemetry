@@ -8,10 +8,6 @@ open Opentelemetry
 open Opentelemetry_client
 open Common_
 
-let set_headers = Config.Env.set_headers
-
-let get_headers = Config.Env.get_headers
-
 type error = Export_error.t
 
 open struct
@@ -30,12 +26,13 @@ module Httpc : Generic_http_consumer.HTTPC with module IO = IO = struct
   let cleanup self = Ezcurl_lwt.delete self
 
   (** send the content to the remote endpoint/path *)
-  let send (self : t) ~url ~decode (bod : string) : ('a, error) result Lwt.t =
+  let send (self : t) ~url ~headers:user_headers ~decode (bod : string) :
+      ('a, error) result Lwt.t =
     let* r =
       let headers =
         ("Content-Type", "application/x-protobuf")
         :: ("Accept", "application/x-protobuf")
-        :: Config.Env.get_headers ()
+        :: user_headers
       in
       Ezcurl_lwt.post ~client:self ~headers ~params:[] ~url
         ~content:(`String bod) ()
