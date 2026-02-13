@@ -116,13 +116,14 @@ let create_exporter ?(config = Config.make ()) () =
 
 let create_backend = create_exporter
 
-let setup_ ?config () : unit =
+let setup_ ~config () : unit =
   Opentelemetry_client_lwt.Util_ambient_context.setup_ambient_context ();
-  let exp = create_exporter ?config () in
+  let exp = create_exporter ~config () in
   Main_exporter.set exp;
   ()
 
-let setup ?config ?(enable = true) () = if enable then setup_ ?config ()
+let setup ?(config = Config.make ()) ?(enable = true) () =
+  if enable && not config.sdk_disabled then setup_ ~config ()
 
 let remove_exporter () : unit Lwt.t =
   let done_fut, done_u = Lwt.wait () in
@@ -137,7 +138,7 @@ let remove_exporter () : unit Lwt.t =
 let remove_backend = remove_exporter
 
 let with_setup ?(config = Config.make ()) ?(enable = true) () f : _ Lwt.t =
-  if enable then (
+  if enable && not config.sdk_disabled then (
     setup_ ~config ();
 
     Lwt.finalize f remove_exporter

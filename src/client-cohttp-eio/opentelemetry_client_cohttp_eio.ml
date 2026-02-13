@@ -175,13 +175,13 @@ let create_exporter ?(config = Config.make ()) ~sw ~env () =
 
 let create_backend = create_exporter
 
-let setup_ ~sw ?config env : unit =
+let setup_ ~sw ~config env : unit =
   Opentelemetry_ambient_context.set_current_storage Ambient_context_eio.storage;
-  let exp = create_exporter ?config ~sw ~env () in
+  let exp = create_exporter ~config ~sw ~env () in
   Main_exporter.set exp
 
-let setup ?config ?(enable = true) ~sw env =
-  if enable then setup_ ~sw ?config env
+let setup ?(config = Config.make ()) ?(enable = true) ~sw env =
+  if enable && not config.sdk_disabled then setup_ ~sw ~config env
 
 let remove_exporter () =
   let p, waker = Eio.Promise.create () in
@@ -190,10 +190,10 @@ let remove_exporter () =
 
 let remove_backend = remove_exporter
 
-let with_setup ?config ?(enable = true) env f =
-  if enable then (
+let with_setup ?(config = Config.make ()) ?(enable = true) env f =
+  if enable && not config.sdk_disabled then (
     Eio.Switch.run @@ fun sw ->
-    setup_ ~sw ?config env;
+    setup_ ~sw ~config env;
     Fun.protect f ~finally:remove_exporter
   ) else
     f ()
