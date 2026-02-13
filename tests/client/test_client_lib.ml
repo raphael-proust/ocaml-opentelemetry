@@ -7,12 +7,15 @@ let test_config_printing () =
     Format.asprintf "%a" Config.pp @@ Env.make (fun common () -> common) ()
   in
   let expected =
-    "{ debug=false;\n\
-    \ self_trace=false; url_traces=\"http://localhost:4318/v1/traces\";\n\
+    "{ debug=false; log_level=none; sdk_disabled=false; self_trace=false;\n\
+    \ url_traces=\"http://localhost:4318/v1/traces\";\n\
     \ url_metrics=\"http://localhost:4318/v1/metrics\";\n\
-    \ url_logs=\"http://localhost:4318/v1/logs\"; headers=[]; batch_traces=400;\n\
-    \ batch_metrics=200; batch_logs=400; batch_timeout_ms=2000;\n\
-    \ http_concurrency_level=None }"
+    \ url_logs=\"http://localhost:4318/v1/logs\"; headers=[]; headers_traces=[];\n\
+    \ headers_metrics=[]; headers_logs=[]; protocol=http/protobuf;\n\
+    \ timeout_ms=10000; timeout_traces_ms=10000; timeout_metrics_ms=10000;\n\
+    \ timeout_logs_ms=10000; batch_traces=400; batch_metrics=200; \
+     batch_logs=400;\n\
+    \ batch_timeout_ms=2000; http_concurrency_level=None }"
   in
   check' string ~msg:"is rendered correctly" ~actual ~expected
 
