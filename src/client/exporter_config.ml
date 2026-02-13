@@ -12,7 +12,7 @@ type log_level =
 type rest = unit
 
 type t = {
-  debug: bool; [@alert deprecated "Use log_level instead"]
+  debug: bool;
   log_level: log_level;
   sdk_disabled: bool;
   url_traces: string;

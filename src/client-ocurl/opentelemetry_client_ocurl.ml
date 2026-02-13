@@ -105,7 +105,7 @@ let shutdown_and_wait ?(after_shutdown = ignore) (self : OTEL.Exporter.t) : unit
   after_shutdown self;
   ()
 
-let setup_ ?(config : Config.t = Config.make ()) () : OTEL.Exporter.t =
+let setup_ ~config () : OTEL.Exporter.t =
   let exporter = create_exporter ~config () in
   OTEL.Main_exporter.set exporter;
 
@@ -131,12 +131,14 @@ let remove_exporter () : unit =
 
 let remove_backend = remove_exporter
 
-let setup ?config ?(enable = true) () =
-  if enable then ignore (setup_ ?config () : OTEL.Exporter.t)
+let setup ?(config : Config.t = Config.make ()) ?(enable = true) () =
+  if enable && not config.common.sdk_disabled then
+    ignore (setup_ ~config () : OTEL.Exporter.t)
 
-let with_setup ?after_shutdown ?config ?(enable = true) () f =
-  if enable then (
-    let exp = setup_ ?config () in
+let with_setup ?after_shutdown ?(config : Config.t = Config.make ())
+    ?(enable = true) () f =
+  if enable && not config.common.sdk_disabled then (
+    let exp = setup_ ~config () in
     Fun.protect f ~finally:(fun () -> shutdown_and_wait ?after_shutdown exp)
   ) else
     f ()
