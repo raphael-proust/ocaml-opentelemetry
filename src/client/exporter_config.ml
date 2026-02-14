@@ -33,6 +33,10 @@ type t = {
   batch_timeout_ms: int;
   self_trace: bool;
   http_concurrency_level: int option;
+  retry_max_attempts: int;
+  retry_initial_delay_ms: float;
+  retry_max_delay_ms: float;
+  retry_backoff_multiplier: float;
   _rest: rest;
 }
 
@@ -82,6 +86,10 @@ let pp out (self : t) : unit =
     batch_logs;
     batch_timeout_ms;
     http_concurrency_level;
+    retry_max_attempts;
+    retry_initial_delay_ms;
+    retry_max_delay_ms;
+    retry_backoff_multiplier;
     _rest = _;
   } =
     self
@@ -95,13 +103,16 @@ let pp out (self : t) : unit =
      %a@];@ protocol=%a;@ timeout_ms=%d;@ timeout_traces_ms=%d;@ \
      timeout_metrics_ms=%d;@ timeout_logs_ms=%d;@ batch_traces=%a;@ \
      batch_metrics=%a;@ batch_logs=%a;@ batch_timeout_ms=%d;@ \
-     http_concurrency_level=%a @]}"
+     http_concurrency_level=%a;@ retry_max_attempts=%d;@ \
+     retry_initial_delay_ms=%.0f;@ retry_max_delay_ms=%.0f;@ \
+     retry_backoff_multiplier=%.1f @]}"
     debug pp_log_level log_level sdk_disabled self_trace url_traces url_metrics
     url_logs ppheaders headers ppheaders headers_traces ppheaders
     headers_metrics ppheaders headers_logs pp_protocol protocol timeout_ms
     timeout_traces_ms timeout_metrics_ms timeout_logs_ms ppiopt batch_traces
     ppiopt batch_metrics ppiopt batch_logs batch_timeout_ms ppiopt
-    http_concurrency_level
+    http_concurrency_level retry_max_attempts retry_initial_delay_ms
+    retry_max_delay_ms retry_backoff_multiplier
 
 let default_url = "http://localhost:4318"
 
@@ -128,6 +139,10 @@ type 'k make =
   ?batch_timeout_ms:int ->
   ?self_trace:bool ->
   ?http_concurrency_level:int ->
+  ?retry_max_attempts:int ->
+  ?retry_initial_delay_ms:float ->
+  ?retry_max_delay_ms:float ->
+  ?retry_backoff_multiplier:float ->
   'k
 
 module type ENV = sig
@@ -234,7 +249,8 @@ module Env () : ENV = struct
       ?(timeout_ms = get_timeout_from_env "OTEL_EXPORTER_OTLP_TIMEOUT" 10_000)
       ?timeout_traces_ms ?timeout_metrics_ms ?timeout_logs_ms
       ?(batch_timeout_ms = 2_000) ?(self_trace = false) ?http_concurrency_level
-      =
+      ?(retry_max_attempts = 3) ?(retry_initial_delay_ms = 100.)
+      ?(retry_max_delay_ms = 5000.) ?(retry_backoff_multiplier = 2.0) =
     let url_traces, url_metrics, url_logs =
       let base_url =
         let base_url =
@@ -333,6 +349,10 @@ module Env () : ENV = struct
         batch_timeout_ms;
         self_trace;
         http_concurrency_level;
+        retry_max_attempts;
+        retry_initial_delay_ms;
+        retry_max_delay_ms;
+        retry_backoff_multiplier;
         _rest = ();
       }
 end

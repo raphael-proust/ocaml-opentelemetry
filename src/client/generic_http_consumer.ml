@@ -62,6 +62,13 @@ end = struct
 
     let send (self : t) (sigs : OTEL.Any_signal_l.t) : (unit, error) result IO.t
         =
+      let should_retry = function
+        | `Failure _ -> true (* Network errors, connection issues *)
+        | `Status (code, _) ->
+          (* Retry on server errors, rate limits, timeouts *)
+          code >= 500 || code = 429 || code = 408
+        | `Sysbreak -> false (* User interrupt, don't retry *)
+      in
       let res = Resource_signal.of_signal_l sigs in
       let url, signal_headers =
         match res with
@@ -78,7 +85,31 @@ end = struct
       in
       let headers = List.rev_append signal_headers filtered_general in
       let data = Resource_signal.Encode.any ~encoder:self.encoder res in
-      Httpc.send self.http ~url ~headers ~decode:(`Ret ()) data
+
+      (* Retry loop with exponential backoff *)
+      let rec retry_send attempt delay_ms =
+        let open IO in
+        let* result =
+          Httpc.send self.http ~url ~headers ~decode:(`Ret ()) data
+        in
+        match result with
+        | Ok x -> return (Ok x)
+        | Error err
+          when should_retry err && attempt < self.config.retry_max_attempts ->
+          let delay_s = delay_ms /. 1000. in
+          let* () = sleep_s delay_s in
+          let next_delay =
+            min self.config.retry_max_delay_ms
+              (delay_ms *. self.config.retry_backoff_multiplier)
+          in
+          retry_send (attempt + 1) next_delay
+        | Error _ as err -> return err
+      in
+
+      if self.config.retry_max_attempts > 0 then
+        retry_send 0 self.config.retry_initial_delay_ms
+      else
+        Httpc.send self.http ~url ~headers ~decode:(`Ret ()) data
   end
 
   module C = Generic_consumer.Make (IO) (Notifier) (Sender)
