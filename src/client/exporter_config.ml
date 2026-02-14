@@ -145,8 +145,9 @@ module Env () : ENV = struct
     | Some "info" -> Log_level_info
     | Some "debug" -> Log_level_debug
     | Some s ->
-      Printf.eprintf "warning: unknown log level %S\n%!" s;
-      Log_level_none
+      Printf.eprintf "warning: unknown log level %S, defaulting to info\n%!" s;
+      (* log in info level, so we at least don't miss warnings and errors  *)
+      Log_level_info
     | None ->
       if get_debug_from_env () then
         Log_level_debug

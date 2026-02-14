@@ -16,7 +16,7 @@ type log_level =
   | Log_level_debug
 
 type rest
-(** Opaque type to force using {!make} while allowing record updates *)
+(** opaque type to force using {!make} while allowing record updates *)
 
 type t = {
   debug: bool; [@alert deprecated "Use log_level instead"]
