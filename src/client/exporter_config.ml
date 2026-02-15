@@ -36,27 +36,30 @@ type t = {
   _rest: rest;
 }
 
-let pp out (self : t) : unit =
+open struct
   let ppiopt out i =
     match i with
     | None -> Format.fprintf out "None"
     | Some i -> Format.fprintf out "%d" i
-  in
-  let pp_header ppf (a, b) = Format.fprintf ppf "@[%s: @,%s@]@." a b in
+
+  let pp_header ppf (a, b) = Format.fprintf ppf "@[%s: @,%s@]@." a b
+
   let ppheaders out l =
     Format.fprintf out "[@[%a@]]" (Format.pp_print_list pp_header) l
-  in
+
   let pp_protocol out = function
     | Http_protobuf -> Format.fprintf out "http/protobuf"
     | Http_json -> Format.fprintf out "http/json"
-  in
+
   let pp_log_level out = function
     | Log_level_none -> Format.fprintf out "none"
     | Log_level_error -> Format.fprintf out "error"
     | Log_level_warn -> Format.fprintf out "warn"
     | Log_level_info -> Format.fprintf out "info"
     | Log_level_debug -> Format.fprintf out "debug"
-  in
+end
+
+let pp out (self : t) : unit =
   let {
     debug;
     log_level;
@@ -131,7 +134,7 @@ module type ENV = sig
   val make : (t -> 'a) -> 'a make
 end
 
-module Env () : ENV = struct
+open struct
   let get_debug_from_env () =
     match Sys.getenv_opt "OTEL_OCAML_DEBUG" with
     | Some ("1" | "true") -> true
@@ -209,7 +212,9 @@ module Env () : ENV = struct
 
   let get_general_headers_from_env () =
     try parse_headers (Sys.getenv "OTEL_EXPORTER_OTLP_HEADERS") with _ -> []
+end
 
+module Env () : ENV = struct
   let merge_headers base specific =
     (* Signal-specific headers override generic ones *)
     let specific_keys = List.map fst specific in
