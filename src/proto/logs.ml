@@ -641,3 +641,274 @@ let rec decode_pb_log_record_flags d : log_record_flags =
   | 0 -> Log_record_flags_do_not_use
   | 255 -> Log_record_flags_trace_flags_mask
   | _ -> Pbrt.Decoder.malformed_variant "log_record_flags"
+
+[@@@ocaml.warning "-23-27-30-39"]
+
+(** {2 Protobuf YoJson Encoding} *)
+
+let rec encode_json_severity_number (v:severity_number) = 
+  match v with
+  | Severity_number_unspecified -> `String "SEVERITY_NUMBER_UNSPECIFIED"
+  | Severity_number_trace -> `String "SEVERITY_NUMBER_TRACE"
+  | Severity_number_trace2 -> `String "SEVERITY_NUMBER_TRACE2"
+  | Severity_number_trace3 -> `String "SEVERITY_NUMBER_TRACE3"
+  | Severity_number_trace4 -> `String "SEVERITY_NUMBER_TRACE4"
+  | Severity_number_debug -> `String "SEVERITY_NUMBER_DEBUG"
+  | Severity_number_debug2 -> `String "SEVERITY_NUMBER_DEBUG2"
+  | Severity_number_debug3 -> `String "SEVERITY_NUMBER_DEBUG3"
+  | Severity_number_debug4 -> `String "SEVERITY_NUMBER_DEBUG4"
+  | Severity_number_info -> `String "SEVERITY_NUMBER_INFO"
+  | Severity_number_info2 -> `String "SEVERITY_NUMBER_INFO2"
+  | Severity_number_info3 -> `String "SEVERITY_NUMBER_INFO3"
+  | Severity_number_info4 -> `String "SEVERITY_NUMBER_INFO4"
+  | Severity_number_warn -> `String "SEVERITY_NUMBER_WARN"
+  | Severity_number_warn2 -> `String "SEVERITY_NUMBER_WARN2"
+  | Severity_number_warn3 -> `String "SEVERITY_NUMBER_WARN3"
+  | Severity_number_warn4 -> `String "SEVERITY_NUMBER_WARN4"
+  | Severity_number_error -> `String "SEVERITY_NUMBER_ERROR"
+  | Severity_number_error2 -> `String "SEVERITY_NUMBER_ERROR2"
+  | Severity_number_error3 -> `String "SEVERITY_NUMBER_ERROR3"
+  | Severity_number_error4 -> `String "SEVERITY_NUMBER_ERROR4"
+  | Severity_number_fatal -> `String "SEVERITY_NUMBER_FATAL"
+  | Severity_number_fatal2 -> `String "SEVERITY_NUMBER_FATAL2"
+  | Severity_number_fatal3 -> `String "SEVERITY_NUMBER_FATAL3"
+  | Severity_number_fatal4 -> `String "SEVERITY_NUMBER_FATAL4"
+
+let rec encode_json_log_record (v:log_record) = 
+  let assoc = ref [] in
+  if log_record_has_time_unix_nano v then (
+    assoc := ("timeUnixNano", Pbrt_yojson.make_string (Int64.to_string v.time_unix_nano)) :: !assoc;
+  );
+  if log_record_has_observed_time_unix_nano v then (
+    assoc := ("observedTimeUnixNano", Pbrt_yojson.make_string (Int64.to_string v.observed_time_unix_nano)) :: !assoc;
+  );
+  if log_record_has_severity_number v then (
+    assoc := ("severityNumber", encode_json_severity_number v.severity_number) :: !assoc;
+  );
+  if log_record_has_severity_text v then (
+    assoc := ("severityText", Pbrt_yojson.make_string v.severity_text) :: !assoc;
+  );
+  assoc := (match v.body with
+    | None -> !assoc
+    | Some v -> ("body", Common.encode_json_any_value v) :: !assoc);
+  assoc := (
+    let l = v.attributes |> List.map Common.encode_json_key_value in
+    ("attributes", `List l) :: !assoc 
+  );
+  if log_record_has_dropped_attributes_count v then (
+    assoc := ("droppedAttributesCount", Pbrt_yojson.make_int (Int32.to_int v.dropped_attributes_count)) :: !assoc;
+  );
+  if log_record_has_flags v then (
+    assoc := ("flags", Pbrt_yojson.make_int (Int32.to_int v.flags)) :: !assoc;
+  );
+  if log_record_has_trace_id v then (
+    assoc := ("traceId", Pbrt_yojson.make_bytes v.trace_id) :: !assoc;
+  );
+  if log_record_has_span_id v then (
+    assoc := ("spanId", Pbrt_yojson.make_bytes v.span_id) :: !assoc;
+  );
+  if log_record_has_event_name v then (
+    assoc := ("eventName", Pbrt_yojson.make_string v.event_name) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_scope_logs (v:scope_logs) = 
+  let assoc = ref [] in
+  assoc := (match v.scope with
+    | None -> !assoc
+    | Some v -> ("scope", Common.encode_json_instrumentation_scope v) :: !assoc);
+  assoc := (
+    let l = v.log_records |> List.map encode_json_log_record in
+    ("logRecords", `List l) :: !assoc 
+  );
+  if scope_logs_has_schema_url v then (
+    assoc := ("schemaUrl", Pbrt_yojson.make_string v.schema_url) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_resource_logs (v:resource_logs) = 
+  let assoc = ref [] in
+  assoc := (match v.resource with
+    | None -> !assoc
+    | Some v -> ("resource", Resource.encode_json_resource v) :: !assoc);
+  assoc := (
+    let l = v.scope_logs |> List.map encode_json_scope_logs in
+    ("scopeLogs", `List l) :: !assoc 
+  );
+  if resource_logs_has_schema_url v then (
+    assoc := ("schemaUrl", Pbrt_yojson.make_string v.schema_url) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_logs_data (v:logs_data) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.resource_logs |> List.map encode_json_resource_logs in
+    ("resourceLogs", `List l) :: !assoc 
+  );
+  `Assoc !assoc
+
+let rec encode_json_log_record_flags (v:log_record_flags) = 
+  match v with
+  | Log_record_flags_do_not_use -> `String "LOG_RECORD_FLAGS_DO_NOT_USE"
+  | Log_record_flags_trace_flags_mask -> `String "LOG_RECORD_FLAGS_TRACE_FLAGS_MASK"
+
+[@@@ocaml.warning "-23-27-30-39"]
+
+(** {2 JSON Decoding} *)
+
+let rec decode_json_severity_number json =
+  match json with
+  | `String "SEVERITY_NUMBER_UNSPECIFIED" -> (Severity_number_unspecified : severity_number)
+  | `String "SEVERITY_NUMBER_TRACE" -> (Severity_number_trace : severity_number)
+  | `String "SEVERITY_NUMBER_TRACE2" -> (Severity_number_trace2 : severity_number)
+  | `String "SEVERITY_NUMBER_TRACE3" -> (Severity_number_trace3 : severity_number)
+  | `String "SEVERITY_NUMBER_TRACE4" -> (Severity_number_trace4 : severity_number)
+  | `String "SEVERITY_NUMBER_DEBUG" -> (Severity_number_debug : severity_number)
+  | `String "SEVERITY_NUMBER_DEBUG2" -> (Severity_number_debug2 : severity_number)
+  | `String "SEVERITY_NUMBER_DEBUG3" -> (Severity_number_debug3 : severity_number)
+  | `String "SEVERITY_NUMBER_DEBUG4" -> (Severity_number_debug4 : severity_number)
+  | `String "SEVERITY_NUMBER_INFO" -> (Severity_number_info : severity_number)
+  | `String "SEVERITY_NUMBER_INFO2" -> (Severity_number_info2 : severity_number)
+  | `String "SEVERITY_NUMBER_INFO3" -> (Severity_number_info3 : severity_number)
+  | `String "SEVERITY_NUMBER_INFO4" -> (Severity_number_info4 : severity_number)
+  | `String "SEVERITY_NUMBER_WARN" -> (Severity_number_warn : severity_number)
+  | `String "SEVERITY_NUMBER_WARN2" -> (Severity_number_warn2 : severity_number)
+  | `String "SEVERITY_NUMBER_WARN3" -> (Severity_number_warn3 : severity_number)
+  | `String "SEVERITY_NUMBER_WARN4" -> (Severity_number_warn4 : severity_number)
+  | `String "SEVERITY_NUMBER_ERROR" -> (Severity_number_error : severity_number)
+  | `String "SEVERITY_NUMBER_ERROR2" -> (Severity_number_error2 : severity_number)
+  | `String "SEVERITY_NUMBER_ERROR3" -> (Severity_number_error3 : severity_number)
+  | `String "SEVERITY_NUMBER_ERROR4" -> (Severity_number_error4 : severity_number)
+  | `String "SEVERITY_NUMBER_FATAL" -> (Severity_number_fatal : severity_number)
+  | `String "SEVERITY_NUMBER_FATAL2" -> (Severity_number_fatal2 : severity_number)
+  | `String "SEVERITY_NUMBER_FATAL3" -> (Severity_number_fatal3 : severity_number)
+  | `String "SEVERITY_NUMBER_FATAL4" -> (Severity_number_fatal4 : severity_number)
+  | _ -> Pbrt_yojson.E.malformed_variant "severity_number"
+
+let rec decode_json_log_record d =
+  let v = default_log_record () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("timeUnixNano", json_value) -> 
+      log_record_set_time_unix_nano v (Pbrt_yojson.int64 json_value "log_record" "time_unix_nano")
+    | ("observedTimeUnixNano", json_value) -> 
+      log_record_set_observed_time_unix_nano v (Pbrt_yojson.int64 json_value "log_record" "observed_time_unix_nano")
+    | ("severityNumber", json_value) -> 
+      log_record_set_severity_number v ((decode_json_severity_number json_value))
+    | ("severityText", json_value) -> 
+      log_record_set_severity_text v (Pbrt_yojson.string json_value "log_record" "severity_text")
+    | ("body", json_value) -> 
+      log_record_set_body v (Common.decode_json_any_value json_value)
+    | ("attributes", `List l) -> begin
+      log_record_set_attributes v @@ List.map (function
+        | json_value -> (Common.decode_json_key_value json_value)
+      ) l;
+    end
+    | ("droppedAttributesCount", json_value) -> 
+      log_record_set_dropped_attributes_count v (Pbrt_yojson.int32 json_value "log_record" "dropped_attributes_count")
+    | ("flags", json_value) -> 
+      log_record_set_flags v (Pbrt_yojson.int32 json_value "log_record" "flags")
+    | ("traceId", json_value) -> 
+      log_record_set_trace_id v (Pbrt_yojson.bytes json_value "log_record" "trace_id")
+    | ("spanId", json_value) -> 
+      log_record_set_span_id v (Pbrt_yojson.bytes json_value "log_record" "span_id")
+    | ("eventName", json_value) -> 
+      log_record_set_event_name v (Pbrt_yojson.string json_value "log_record" "event_name")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    time_unix_nano = v.time_unix_nano;
+    observed_time_unix_nano = v.observed_time_unix_nano;
+    severity_number = v.severity_number;
+    severity_text = v.severity_text;
+    body = v.body;
+    attributes = v.attributes;
+    dropped_attributes_count = v.dropped_attributes_count;
+    flags = v.flags;
+    trace_id = v.trace_id;
+    span_id = v.span_id;
+    event_name = v.event_name;
+  } : log_record)
+
+let rec decode_json_scope_logs d =
+  let v = default_scope_logs () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("scope", json_value) -> 
+      scope_logs_set_scope v (Common.decode_json_instrumentation_scope json_value)
+    | ("logRecords", `List l) -> begin
+      scope_logs_set_log_records v @@ List.map (function
+        | json_value -> (decode_json_log_record json_value)
+      ) l;
+    end
+    | ("schemaUrl", json_value) -> 
+      scope_logs_set_schema_url v (Pbrt_yojson.string json_value "scope_logs" "schema_url")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    scope = v.scope;
+    log_records = v.log_records;
+    schema_url = v.schema_url;
+  } : scope_logs)
+
+let rec decode_json_resource_logs d =
+  let v = default_resource_logs () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("resource", json_value) -> 
+      resource_logs_set_resource v (Resource.decode_json_resource json_value)
+    | ("scopeLogs", `List l) -> begin
+      resource_logs_set_scope_logs v @@ List.map (function
+        | json_value -> (decode_json_scope_logs json_value)
+      ) l;
+    end
+    | ("schemaUrl", json_value) -> 
+      resource_logs_set_schema_url v (Pbrt_yojson.string json_value "resource_logs" "schema_url")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    resource = v.resource;
+    scope_logs = v.scope_logs;
+    schema_url = v.schema_url;
+  } : resource_logs)
+
+let rec decode_json_logs_data d =
+  let v = default_logs_data () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("resourceLogs", `List l) -> begin
+      logs_data_set_resource_logs v @@ List.map (function
+        | json_value -> (decode_json_resource_logs json_value)
+      ) l;
+    end
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    resource_logs = v.resource_logs;
+  } : logs_data)
+
+let rec decode_json_log_record_flags json =
+  match json with
+  | `String "LOG_RECORD_FLAGS_DO_NOT_USE" -> (Log_record_flags_do_not_use : log_record_flags)
+  | `String "LOG_RECORD_FLAGS_TRACE_FLAGS_MASK" -> (Log_record_flags_trace_flags_mask : log_record_flags)
+  | _ -> Pbrt_yojson.E.malformed_variant "log_record_flags"

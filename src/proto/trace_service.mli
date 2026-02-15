@@ -114,3 +114,27 @@ val decode_pb_export_trace_partial_success : Pbrt.Decoder.t -> export_trace_part
 
 val decode_pb_export_trace_service_response : Pbrt.Decoder.t -> export_trace_service_response
 (** [decode_pb_export_trace_service_response decoder] decodes a [export_trace_service_response] binary value from [decoder] *)
+
+
+(** {2 Protobuf YoJson Encoding} *)
+
+val encode_json_export_trace_service_request : export_trace_service_request -> Yojson.Basic.t
+(** [encode_json_export_trace_service_request v encoder] encodes [v] to to json *)
+
+val encode_json_export_trace_partial_success : export_trace_partial_success -> Yojson.Basic.t
+(** [encode_json_export_trace_partial_success v encoder] encodes [v] to to json *)
+
+val encode_json_export_trace_service_response : export_trace_service_response -> Yojson.Basic.t
+(** [encode_json_export_trace_service_response v encoder] encodes [v] to to json *)
+
+
+(** {2 JSON Decoding} *)
+
+val decode_json_export_trace_service_request : Yojson.Basic.t -> export_trace_service_request
+(** [decode_json_export_trace_service_request decoder] decodes a [export_trace_service_request] value from [decoder] *)
+
+val decode_json_export_trace_partial_success : Yojson.Basic.t -> export_trace_partial_success
+(** [decode_json_export_trace_partial_success decoder] decodes a [export_trace_partial_success] value from [decoder] *)
+
+val decode_json_export_trace_service_response : Yojson.Basic.t -> export_trace_service_response
+(** [decode_json_export_trace_service_response decoder] decodes a [export_trace_service_response] value from [decoder] *)

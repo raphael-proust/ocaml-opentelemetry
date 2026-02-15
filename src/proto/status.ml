@@ -108,3 +108,51 @@ let rec decode_pb_status d =
     | Some (_, payload_kind) -> Pbrt.Decoder.skip d payload_kind
   done;
   (v : status)
+
+[@@@ocaml.warning "-23-27-30-39"]
+
+(** {2 Protobuf YoJson Encoding} *)
+
+let rec encode_json_status (v:status) = 
+  let assoc = ref [] in
+  if status_has_code v then (
+    assoc := ("code", Pbrt_yojson.make_int (Int32.to_int v.code)) :: !assoc;
+  );
+  if status_has_message v then (
+    assoc := ("message", Pbrt_yojson.make_bytes v.message) :: !assoc;
+  );
+  assoc := (
+    let l = v.details |> List.map Pbrt_yojson.make_bytes in
+    ("details", `List l) :: !assoc 
+  );
+  `Assoc !assoc
+
+[@@@ocaml.warning "-23-27-30-39"]
+
+(** {2 JSON Decoding} *)
+
+let rec decode_json_status d =
+  let v = default_status () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("code", json_value) -> 
+      status_set_code v (Pbrt_yojson.int32 json_value "status" "code")
+    | ("message", json_value) -> 
+      status_set_message v (Pbrt_yojson.bytes json_value "status" "message")
+    | ("details", `List l) -> begin
+      status_set_details v @@ List.map (function
+        | json_value -> Pbrt_yojson.bytes json_value "status" "details"
+      ) l;
+    end
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    code = v.code;
+    message = v.message;
+    details = v.details;
+  } : status)

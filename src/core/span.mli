@@ -124,4 +124,6 @@ val default_kind : Span_kind.t ref
     set to "internal", following directions from the [.proto] file. It can be
     convenient to set "client" or "server" uniformly in here. *)
 
-val k_context : t Context.key
+val k_ambient : t Context.key
+(** Context key to carry around a {!Span.t} in ambient context.
+    @since NEXT_RELEASE *)

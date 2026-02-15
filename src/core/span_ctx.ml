@@ -88,4 +88,4 @@ let of_w3c_trace_context_exn bs =
   | Ok t -> t
   | Error msg -> invalid_arg @@ spf "invalid w3c trace context: %s" msg
 
-let k_span_ctx : t Hmap.key = Hmap.Key.create ()
+let k_ambient : t Hmap.key = Hmap.Key.create ()

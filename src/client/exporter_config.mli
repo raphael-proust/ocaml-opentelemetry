@@ -88,6 +88,15 @@ type t = {
           be used to represent the size of a pool of workers where each worker
           gets a batch to send, send it, and repeats.
           @since NEXT_RELEASE *)
+  retry_max_attempts: int;
+      (** Maximum number of retry attempts for failed exports. 0 means no retry,
+          1 means one retry after initial failure. Default 3. *)
+  retry_initial_delay_ms: float;
+      (** Initial delay in milliseconds before first retry. Default 100ms. *)
+  retry_max_delay_ms: float;
+      (** Maximum delay in milliseconds between retries. Default 5000ms. *)
+  retry_backoff_multiplier: float;
+      (** Multiplier for exponential backoff. Default 2.0. *)
   _rest: rest;
 }
 (** Configuration.
@@ -123,6 +132,10 @@ type 'k make =
   ?batch_timeout_ms:int ->
   ?self_trace:bool ->
   ?http_concurrency_level:int ->
+  ?retry_max_attempts:int ->
+  ?retry_initial_delay_ms:float ->
+  ?retry_max_delay_ms:float ->
+  ?retry_backoff_multiplier:float ->
   'k
 (** A function that gathers all the values needed to construct a {!t}, and
     produces a ['k]. ['k] is typically a continuation used to construct a

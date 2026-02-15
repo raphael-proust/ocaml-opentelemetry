@@ -62,3 +62,15 @@ val encode_pb_resource : resource -> Pbrt.Encoder.t -> unit
 
 val decode_pb_resource : Pbrt.Decoder.t -> resource
 (** [decode_pb_resource decoder] decodes a [resource] binary value from [decoder] *)
+
+
+(** {2 Protobuf YoJson Encoding} *)
+
+val encode_json_resource : resource -> Yojson.Basic.t
+(** [encode_json_resource v encoder] encodes [v] to to json *)
+
+
+(** {2 JSON Decoding} *)
+
+val decode_json_resource : Yojson.Basic.t -> resource
+(** [decode_json_resource decoder] decodes a [resource] value from [decoder] *)

@@ -3,7 +3,7 @@
  (public_name opentelemetry.proto)
  (synopsis "Protobuf generated code for opentelemetry")
  (flags :standard -warn-error -a+8)
- (libraries pbrt))
+ (libraries pbrt pbrt_yojson))
 
 ; ### protobuf rules ###
 
@@ -16,7 +16,7 @@
   (:file status.proto)
   (source_tree %{project_root}/vendor/opentelemetry-proto/))
  (action
-  (run ocaml-protoc %{file} --ml_out . --pp --make --binary)))
+  (run ocaml-protoc %{file} --ml_out . --pp --make --binary --yojson)))
 
 (rule
  (alias lint)
@@ -37,7 +37,8 @@
    .
    --pp
    --make
-   --binary)))
+   --binary
+   --yojson)))
 
 (rule
  (alias lint)
@@ -58,7 +59,8 @@
    .
    --pp
    --make
-   --binary)))
+   --binary
+   --yojson)))
 
 (rule
  (alias lint)
@@ -79,7 +81,8 @@
    .
    --pp
    --make
-   --binary)))
+   --binary
+   --yojson)))
 
 (rule
  (alias lint)
@@ -100,7 +103,8 @@
    .
    --pp
    --make
-   --binary)))
+   --binary
+   --yojson)))
 
 (rule
  (alias lint)
@@ -121,7 +125,8 @@
    .
    --pp
    --make
-   --binary)))
+   --binary
+   --yojson)))
 
 (rule
  (alias lint)
@@ -142,7 +147,8 @@
    .
    --pp
    --make
-   --binary)))
+   --binary
+   --yojson)))
 
 (rule
  (alias lint)
@@ -163,7 +169,8 @@
    .
    --pp
    --make
-   --binary)))
+   --binary
+   --yojson)))
 
 (rule
  (alias lint)
@@ -184,4 +191,5 @@
    .
    --pp
    --make
-   --binary)))
+   --binary
+   --yojson)))

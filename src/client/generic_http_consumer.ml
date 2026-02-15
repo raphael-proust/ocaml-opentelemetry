@@ -60,6 +60,31 @@ end = struct
 
     let cleanup self = Httpc.cleanup self.http
 
+    (** Should we retry, based on the HTTP response code? *)
+    let should_retry = function
+      | `Failure _ -> true (* Network errors, connection issues *)
+      | `Status (code, _) ->
+        (* Retry on server errors, rate limits, timeouts *)
+        code >= 500 || code = 429 || code = 408
+      | `Sysbreak -> false (* User interrupt, don't retry *)
+
+    (** Retry loop over [f()] with exponential backoff *)
+    let rec retry_loop_ (self : t) attempt delay_ms ~f =
+      let open IO in
+      let* result = f () in
+      match result with
+      | Ok x -> return (Ok x)
+      | Error err
+        when should_retry err && attempt < self.config.retry_max_attempts ->
+        let delay_s = delay_ms /. 1000. in
+        let* () = sleep_s delay_s in
+        let next_delay =
+          min self.config.retry_max_delay_ms
+            (delay_ms *. self.config.retry_backoff_multiplier)
+        in
+        retry_loop_ self (attempt + 1) next_delay ~f
+      | Error _ as err -> return err
+
     let send (self : t) (sigs : OTEL.Any_signal_l.t) : (unit, error) result IO.t
         =
       let res = Resource_signal.of_signal_l sigs in
@@ -76,9 +101,29 @@ end = struct
           (fun (k, _) -> not (List.mem k signal_keys))
           self.config.headers
       in
-      let headers = List.rev_append signal_headers filtered_general in
-      let data = Resource_signal.Encode.any ~encoder:self.encoder res in
-      Httpc.send self.http ~url ~headers ~decode:(`Ret ()) data
+      let content_type =
+        match self.config.protocol with
+        | Http_protobuf -> "application/x-protobuf"
+        | Http_json -> "application/json"
+      in
+      let headers =
+        ("Content-Type", content_type)
+        :: ("Accept", content_type)
+        :: List.rev_append signal_headers filtered_general
+      in
+      let data =
+        Resource_signal.Encode.any ~encoder:self.encoder
+          ~protocol:self.config.protocol res
+      in
+
+      let do_once () =
+        Httpc.send self.http ~url ~headers ~decode:(`Ret ()) data
+      in
+
+      if self.config.retry_max_attempts > 0 then
+        retry_loop_ self 0 self.config.retry_initial_delay_ms ~f:do_once
+      else
+        do_once ()
   end
 
   module C = Generic_consumer.Make (IO) (Notifier) (Sender)

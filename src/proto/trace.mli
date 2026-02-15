@@ -483,3 +483,69 @@ val decode_pb_traces_data : Pbrt.Decoder.t -> traces_data
 
 val decode_pb_span_flags : Pbrt.Decoder.t -> span_flags
 (** [decode_pb_span_flags decoder] decodes a [span_flags] binary value from [decoder] *)
+
+
+(** {2 Protobuf YoJson Encoding} *)
+
+val encode_json_span_span_kind : span_span_kind -> Yojson.Basic.t
+(** [encode_json_span_span_kind v encoder] encodes [v] to to json *)
+
+val encode_json_span_event : span_event -> Yojson.Basic.t
+(** [encode_json_span_event v encoder] encodes [v] to to json *)
+
+val encode_json_span_link : span_link -> Yojson.Basic.t
+(** [encode_json_span_link v encoder] encodes [v] to to json *)
+
+val encode_json_status_status_code : status_status_code -> Yojson.Basic.t
+(** [encode_json_status_status_code v encoder] encodes [v] to to json *)
+
+val encode_json_status : status -> Yojson.Basic.t
+(** [encode_json_status v encoder] encodes [v] to to json *)
+
+val encode_json_span : span -> Yojson.Basic.t
+(** [encode_json_span v encoder] encodes [v] to to json *)
+
+val encode_json_scope_spans : scope_spans -> Yojson.Basic.t
+(** [encode_json_scope_spans v encoder] encodes [v] to to json *)
+
+val encode_json_resource_spans : resource_spans -> Yojson.Basic.t
+(** [encode_json_resource_spans v encoder] encodes [v] to to json *)
+
+val encode_json_traces_data : traces_data -> Yojson.Basic.t
+(** [encode_json_traces_data v encoder] encodes [v] to to json *)
+
+val encode_json_span_flags : span_flags -> Yojson.Basic.t
+(** [encode_json_span_flags v encoder] encodes [v] to to json *)
+
+
+(** {2 JSON Decoding} *)
+
+val decode_json_span_span_kind : Yojson.Basic.t -> span_span_kind
+(** [decode_json_span_span_kind decoder] decodes a [span_span_kind] value from [decoder] *)
+
+val decode_json_span_event : Yojson.Basic.t -> span_event
+(** [decode_json_span_event decoder] decodes a [span_event] value from [decoder] *)
+
+val decode_json_span_link : Yojson.Basic.t -> span_link
+(** [decode_json_span_link decoder] decodes a [span_link] value from [decoder] *)
+
+val decode_json_status_status_code : Yojson.Basic.t -> status_status_code
+(** [decode_json_status_status_code decoder] decodes a [status_status_code] value from [decoder] *)
+
+val decode_json_status : Yojson.Basic.t -> status
+(** [decode_json_status decoder] decodes a [status] value from [decoder] *)
+
+val decode_json_span : Yojson.Basic.t -> span
+(** [decode_json_span decoder] decodes a [span] value from [decoder] *)
+
+val decode_json_scope_spans : Yojson.Basic.t -> scope_spans
+(** [decode_json_scope_spans decoder] decodes a [scope_spans] value from [decoder] *)
+
+val decode_json_resource_spans : Yojson.Basic.t -> resource_spans
+(** [decode_json_resource_spans decoder] decodes a [resource_spans] value from [decoder] *)
+
+val decode_json_traces_data : Yojson.Basic.t -> traces_data
+(** [decode_json_traces_data decoder] decodes a [traces_data] value from [decoder] *)
+
+val decode_json_span_flags : Yojson.Basic.t -> span_flags
+(** [decode_json_span_flags decoder] decodes a [span_flags] value from [decoder] *)

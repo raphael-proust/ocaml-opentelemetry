@@ -106,3 +106,55 @@ let rec decode_pb_resource d =
     | Some (_, payload_kind) -> Pbrt.Decoder.skip d payload_kind
   done;
   (v : resource)
+
+[@@@ocaml.warning "-23-27-30-39"]
+
+(** {2 Protobuf YoJson Encoding} *)
+
+let rec encode_json_resource (v:resource) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.attributes |> List.map Common.encode_json_key_value in
+    ("attributes", `List l) :: !assoc 
+  );
+  if resource_has_dropped_attributes_count v then (
+    assoc := ("droppedAttributesCount", Pbrt_yojson.make_int (Int32.to_int v.dropped_attributes_count)) :: !assoc;
+  );
+  assoc := (
+    let l = v.entity_refs |> List.map Common.encode_json_entity_ref in
+    ("entityRefs", `List l) :: !assoc 
+  );
+  `Assoc !assoc
+
+[@@@ocaml.warning "-23-27-30-39"]
+
+(** {2 JSON Decoding} *)
+
+let rec decode_json_resource d =
+  let v = default_resource () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("attributes", `List l) -> begin
+      resource_set_attributes v @@ List.map (function
+        | json_value -> (Common.decode_json_key_value json_value)
+      ) l;
+    end
+    | ("droppedAttributesCount", json_value) -> 
+      resource_set_dropped_attributes_count v (Pbrt_yojson.int32 json_value "resource" "dropped_attributes_count")
+    | ("entityRefs", `List l) -> begin
+      resource_set_entity_refs v @@ List.map (function
+        | json_value -> (Common.decode_json_entity_ref json_value)
+      ) l;
+    end
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    attributes = v.attributes;
+    dropped_attributes_count = v.dropped_attributes_count;
+    entity_refs = v.entity_refs;
+  } : resource)

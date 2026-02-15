@@ -233,3 +233,45 @@ val decode_pb_instrumentation_scope : Pbrt.Decoder.t -> instrumentation_scope
 
 val decode_pb_entity_ref : Pbrt.Decoder.t -> entity_ref
 (** [decode_pb_entity_ref decoder] decodes a [entity_ref] binary value from [decoder] *)
+
+
+(** {2 Protobuf YoJson Encoding} *)
+
+val encode_json_any_value : any_value -> Yojson.Basic.t
+(** [encode_json_any_value v encoder] encodes [v] to to json *)
+
+val encode_json_array_value : array_value -> Yojson.Basic.t
+(** [encode_json_array_value v encoder] encodes [v] to to json *)
+
+val encode_json_key_value_list : key_value_list -> Yojson.Basic.t
+(** [encode_json_key_value_list v encoder] encodes [v] to to json *)
+
+val encode_json_key_value : key_value -> Yojson.Basic.t
+(** [encode_json_key_value v encoder] encodes [v] to to json *)
+
+val encode_json_instrumentation_scope : instrumentation_scope -> Yojson.Basic.t
+(** [encode_json_instrumentation_scope v encoder] encodes [v] to to json *)
+
+val encode_json_entity_ref : entity_ref -> Yojson.Basic.t
+(** [encode_json_entity_ref v encoder] encodes [v] to to json *)
+
+
+(** {2 JSON Decoding} *)
+
+val decode_json_any_value : Yojson.Basic.t -> any_value
+(** [decode_json_any_value decoder] decodes a [any_value] value from [decoder] *)
+
+val decode_json_array_value : Yojson.Basic.t -> array_value
+(** [decode_json_array_value decoder] decodes a [array_value] value from [decoder] *)
+
+val decode_json_key_value_list : Yojson.Basic.t -> key_value_list
+(** [decode_json_key_value_list decoder] decodes a [key_value_list] value from [decoder] *)
+
+val decode_json_key_value : Yojson.Basic.t -> key_value
+(** [decode_json_key_value decoder] decodes a [key_value] value from [decoder] *)
+
+val decode_json_instrumentation_scope : Yojson.Basic.t -> instrumentation_scope
+(** [decode_json_instrumentation_scope decoder] decodes a [instrumentation_scope] value from [decoder] *)
+
+val decode_json_entity_ref : Yojson.Basic.t -> entity_ref
+(** [decode_json_entity_ref decoder] decodes a [entity_ref] value from [decoder] *)

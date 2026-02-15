@@ -65,8 +65,12 @@ let of_signal_l ?service_name ?attrs (s : OTEL.Any_signal_l.t) : t =
   | Spans sp -> of_spans ?service_name ?attrs sp
   | Metrics ms -> of_metrics ?service_name ?attrs ms
 
+type protocol = Exporter_config.protocol =
+  | Http_protobuf
+  | Http_json
+
 module Encode = struct
-  let resource_to_string ~encoder ~ctor ~enc resource : string =
+  let resource_to_pb_string ~encoder ~ctor ~enc resource : string =
     let encoder =
       match encoder with
       | Some e ->
@@ -85,33 +89,77 @@ module Encode = struct
       Pbrt.Encoder.reset encoder;
       data
     in
-
     data
 
-  let logs ?encoder resource_logs =
-    resource_to_string ~encoder resource_logs
+  let resource_to_json_string ~ctor ~enc resource : string =
+    let x = ctor resource in
+    let data =
+      let@ _sc = Self_trace.with_ ~kind:Span.Span_kind_internal "encode-json" in
+      let json = enc x in
+      let data = Yojson.Basic.to_string json in
+      Span.add_attrs _sc [ "size", `Int (String.length data) ];
+      data
+    in
+    data
+
+  let logs_pb ?encoder resource_logs =
+    resource_to_pb_string ~encoder resource_logs
       ~ctor:(fun r ->
         Logs_service.make_export_logs_service_request ~resource_logs:r ())
       ~enc:Logs_service.encode_pb_export_logs_service_request
 
-  let metrics ?encoder resource_metrics =
-    resource_to_string ~encoder resource_metrics
+  let logs_json resource_logs =
+    resource_to_json_string resource_logs
+      ~ctor:(fun r ->
+        Logs_service.make_export_logs_service_request ~resource_logs:r ())
+      ~enc:Logs_service.encode_json_export_logs_service_request
+
+  let metrics_pb ?encoder resource_metrics =
+    resource_to_pb_string ~encoder resource_metrics
       ~ctor:(fun r ->
         Metrics_service.make_export_metrics_service_request ~resource_metrics:r
           ())
       ~enc:Metrics_service.encode_pb_export_metrics_service_request
 
-  let traces ?encoder resource_spans =
-    resource_to_string ~encoder resource_spans
+  let metrics_json resource_metrics =
+    resource_to_json_string resource_metrics
+      ~ctor:(fun r ->
+        Metrics_service.make_export_metrics_service_request ~resource_metrics:r
+          ())
+      ~enc:Metrics_service.encode_json_export_metrics_service_request
+
+  let traces_pb ?encoder resource_spans =
+    resource_to_pb_string ~encoder resource_spans
       ~ctor:(fun r ->
         Trace_service.make_export_trace_service_request ~resource_spans:r ())
       ~enc:Trace_service.encode_pb_export_trace_service_request
 
-  let any ?encoder (r : t) : string =
+  let traces_json resource_spans =
+    resource_to_json_string resource_spans
+      ~ctor:(fun r ->
+        Trace_service.make_export_trace_service_request ~resource_spans:r ())
+      ~enc:Trace_service.encode_json_export_trace_service_request
+
+  let logs ?encoder ?(protocol = Http_protobuf) resource_logs =
+    match protocol with
+    | Http_protobuf -> logs_pb ?encoder resource_logs
+    | Http_json -> logs_json resource_logs
+
+  let metrics ?encoder ?(protocol = Http_protobuf) resource_metrics =
+    match protocol with
+    | Http_protobuf -> metrics_pb ?encoder resource_metrics
+    | Http_json -> metrics_json resource_metrics
+
+  let traces ?encoder ?(protocol = Http_protobuf) resource_spans =
+    match protocol with
+    | Http_protobuf -> traces_pb ?encoder resource_spans
+    | Http_json -> traces_json resource_spans
+
+  let any ?encoder ?(protocol = Http_protobuf) (r : t) : string =
     match r with
-    | Logs l -> logs ?encoder l
-    | Traces sp -> traces ?encoder sp
-    | Metrics ms -> metrics ?encoder ms
+    | Logs l -> logs ?encoder ~protocol l
+    | Traces sp -> traces ?encoder ~protocol sp
+    | Metrics ms -> metrics ?encoder ~protocol ms
 end
 
 module Decode = struct

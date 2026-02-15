@@ -489,3 +489,228 @@ let rec decode_pb_entity_ref d =
     | Some (_, payload_kind) -> Pbrt.Decoder.skip d payload_kind
   done;
   (v : entity_ref)
+
+[@@@ocaml.warning "-23-27-30-39"]
+
+(** {2 Protobuf YoJson Encoding} *)
+
+let rec encode_json_any_value (v:any_value) = 
+  begin match v with
+  | String_value v -> `Assoc [("stringValue", Pbrt_yojson.make_string v)]
+  | Bool_value v -> `Assoc [("boolValue", Pbrt_yojson.make_bool v)]
+  | Int_value v -> `Assoc [("intValue", Pbrt_yojson.make_string (Int64.to_string v))]
+  | Double_value v -> `Assoc [("doubleValue", Pbrt_yojson.make_string (string_of_float v))]
+  | Array_value v -> `Assoc [("arrayValue", encode_json_array_value v)]
+  | Kvlist_value v -> `Assoc [("kvlistValue", encode_json_key_value_list v)]
+  | Bytes_value v -> `Assoc [("bytesValue", Pbrt_yojson.make_bytes v)]
+  end
+
+and encode_json_array_value (v:array_value) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.values |> List.map encode_json_any_value in
+    ("values", `List l) :: !assoc 
+  );
+  `Assoc !assoc
+
+and encode_json_key_value_list (v:key_value_list) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.values |> List.map encode_json_key_value in
+    ("values", `List l) :: !assoc 
+  );
+  `Assoc !assoc
+
+and encode_json_key_value (v:key_value) = 
+  let assoc = ref [] in
+  if key_value_has_key v then (
+    assoc := ("key", Pbrt_yojson.make_string v.key) :: !assoc;
+  );
+  assoc := (match v.value with
+    | None -> !assoc
+    | Some v -> ("value", encode_json_any_value v) :: !assoc);
+  `Assoc !assoc
+
+let rec encode_json_instrumentation_scope (v:instrumentation_scope) = 
+  let assoc = ref [] in
+  if instrumentation_scope_has_name v then (
+    assoc := ("name", Pbrt_yojson.make_string v.name) :: !assoc;
+  );
+  if instrumentation_scope_has_version v then (
+    assoc := ("version", Pbrt_yojson.make_string v.version) :: !assoc;
+  );
+  assoc := (
+    let l = v.attributes |> List.map encode_json_key_value in
+    ("attributes", `List l) :: !assoc 
+  );
+  if instrumentation_scope_has_dropped_attributes_count v then (
+    assoc := ("droppedAttributesCount", Pbrt_yojson.make_int (Int32.to_int v.dropped_attributes_count)) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_entity_ref (v:entity_ref) = 
+  let assoc = ref [] in
+  if entity_ref_has_schema_url v then (
+    assoc := ("schemaUrl", Pbrt_yojson.make_string v.schema_url) :: !assoc;
+  );
+  if entity_ref_has_type_ v then (
+    assoc := ("type", Pbrt_yojson.make_string v.type_) :: !assoc;
+  );
+  assoc := (
+    let l = v.id_keys |> List.map Pbrt_yojson.make_string in
+    ("idKeys", `List l) :: !assoc 
+  );
+  assoc := (
+    let l = v.description_keys |> List.map Pbrt_yojson.make_string in
+    ("descriptionKeys", `List l) :: !assoc 
+  );
+  `Assoc !assoc
+
+[@@@ocaml.warning "-23-27-30-39"]
+
+(** {2 JSON Decoding} *)
+
+let rec decode_json_any_value json =
+  let assoc = match json with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  let rec loop = function
+    | [] -> Pbrt_yojson.E.malformed_variant "any_value"
+    | ("stringValue", json_value)::_ -> 
+      (String_value (Pbrt_yojson.string json_value "any_value" "String_value") : any_value)
+    | ("boolValue", json_value)::_ -> 
+      (Bool_value (Pbrt_yojson.bool json_value "any_value" "Bool_value") : any_value)
+    | ("intValue", json_value)::_ -> 
+      (Int_value (Pbrt_yojson.int64 json_value "any_value" "Int_value") : any_value)
+    | ("doubleValue", json_value)::_ -> 
+      (Double_value (Pbrt_yojson.float json_value "any_value" "Double_value") : any_value)
+    | ("arrayValue", json_value)::_ -> 
+      (Array_value ((decode_json_array_value json_value)) : any_value)
+    | ("kvlistValue", json_value)::_ -> 
+      (Kvlist_value ((decode_json_key_value_list json_value)) : any_value)
+    | ("bytesValue", json_value)::_ -> 
+      (Bytes_value (Pbrt_yojson.bytes json_value "any_value" "Bytes_value") : any_value)
+    
+    | _ :: tl -> loop tl
+  in
+  loop assoc
+
+and decode_json_array_value d =
+  let v = default_array_value () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("values", `List l) -> begin
+      array_value_set_values v @@ List.map (function
+        | json_value -> (decode_json_any_value json_value)
+      ) l;
+    end
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    values = v.values;
+  } : array_value)
+
+and decode_json_key_value_list d =
+  let v = default_key_value_list () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("values", `List l) -> begin
+      key_value_list_set_values v @@ List.map (function
+        | json_value -> (decode_json_key_value json_value)
+      ) l;
+    end
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    values = v.values;
+  } : key_value_list)
+
+and decode_json_key_value d =
+  let v = default_key_value () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("key", json_value) -> 
+      key_value_set_key v (Pbrt_yojson.string json_value "key_value" "key")
+    | ("value", json_value) -> 
+      key_value_set_value v (decode_json_any_value json_value)
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    key = v.key;
+    value = v.value;
+  } : key_value)
+
+let rec decode_json_instrumentation_scope d =
+  let v = default_instrumentation_scope () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("name", json_value) -> 
+      instrumentation_scope_set_name v (Pbrt_yojson.string json_value "instrumentation_scope" "name")
+    | ("version", json_value) -> 
+      instrumentation_scope_set_version v (Pbrt_yojson.string json_value "instrumentation_scope" "version")
+    | ("attributes", `List l) -> begin
+      instrumentation_scope_set_attributes v @@ List.map (function
+        | json_value -> (decode_json_key_value json_value)
+      ) l;
+    end
+    | ("droppedAttributesCount", json_value) -> 
+      instrumentation_scope_set_dropped_attributes_count v (Pbrt_yojson.int32 json_value "instrumentation_scope" "dropped_attributes_count")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    name = v.name;
+    version = v.version;
+    attributes = v.attributes;
+    dropped_attributes_count = v.dropped_attributes_count;
+  } : instrumentation_scope)
+
+let rec decode_json_entity_ref d =
+  let v = default_entity_ref () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("schemaUrl", json_value) -> 
+      entity_ref_set_schema_url v (Pbrt_yojson.string json_value "entity_ref" "schema_url")
+    | ("type", json_value) -> 
+      entity_ref_set_type_ v (Pbrt_yojson.string json_value "entity_ref" "type_")
+    | ("idKeys", `List l) -> begin
+      entity_ref_set_id_keys v @@ List.map (function
+        | json_value -> Pbrt_yojson.string json_value "entity_ref" "id_keys"
+      ) l;
+    end
+    | ("descriptionKeys", `List l) -> begin
+      entity_ref_set_description_keys v @@ List.map (function
+        | json_value -> Pbrt_yojson.string json_value "entity_ref" "description_keys"
+      ) l;
+    end
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    schema_url = v.schema_url;
+    type_ = v.type_;
+    id_keys = v.id_keys;
+    description_keys = v.description_keys;
+  } : entity_ref)

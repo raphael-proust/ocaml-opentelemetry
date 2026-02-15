@@ -33,14 +33,6 @@ module Httpc : Generic_http_consumer.HTTPC with module IO = IO = struct
 
     let open Cohttp in
     let headers = Header.(add_list (init ()) user_headers) in
-    let headers =
-      Header.(
-        add_list headers
-          [
-            "Content-Type", "application/x-protobuf";
-            "Accept", "application/x-protobuf";
-          ])
-    in
 
     let body = Cohttp_lwt.Body.of_string bod in
 

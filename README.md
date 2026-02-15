@@ -78,12 +78,31 @@ let main () =
 
 ## Configuration
 
-The library is configurable via `Opentelemetry.Config`, via the standard
-opentelemetry env variables, or with some custom environment variables.
+### Environment Variables
 
-- `OTEL_EXPORTER_OTLP_ENDPOINT` sets the http endpoint to send signals to
-- `OTEL_OCAML_DEBUG=1` to print some debug messages from the opentelemetry library ide
-- `OTEL_RESOURCE_ATTRIBUTES` sets a comma separated list of custom resource attributes
+The library supports standard OpenTelemetry environment variables:
+
+**General:**
+- `OTEL_SDK_DISABLED` - disable the SDK (default: false)
+- `OTEL_SERVICE_NAME` - service name
+- `OTEL_RESOURCE_ATTRIBUTES` - comma-separated key=value resource attributes
+- `OTEL_OCAML_DEBUG=1` - print debug messages from the opentelemetry library
+
+**Exporter endpoints:**
+- `OTEL_EXPORTER_OTLP_ENDPOINT` - base endpoint (default: http://localhost:4318)
+- `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` - traces endpoint
+- `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` - metrics endpoint
+- `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` - logs endpoint
+
+**Exporter configuration:**
+- `OTEL_EXPORTER_OTLP_PROTOCOL` - protocol: http/protobuf or http/json (default: http/protobuf)
+
+**Headers:**
+- `OTEL_EXPORTER_OTLP_HEADERS` - headers as comma-separated key=value pairs
+- `OTEL_EXPORTER_OTLP_TRACES_HEADERS` - traces-specific headers
+- `OTEL_EXPORTER_OTLP_METRICS_HEADERS` - metrics-specific headers
+- `OTEL_EXPORTER_OTLP_LOGS_HEADERS` - logs-specific headers
+
 
 ## Collector opentelemetry-client-ocurl
 

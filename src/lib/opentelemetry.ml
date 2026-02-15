@@ -40,7 +40,7 @@ let k_trace_id = Trace_id.k_trace_id
 module Span_id = Span_id
 module Span_ctx = Span_ctx
 
-let k_span_ctx = Span_ctx.k_span_ctx
+let k_ambient = Span_ctx.k_ambient
 
 (** {2 Attributes and conventions} *)
 
