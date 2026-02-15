@@ -36,9 +36,9 @@ open struct
   (* sanity check: otrace meta-map must be the same as hmap *)
   let () = ignore (fun (k : _ Hmap.key) : _ Ambient_context.Context.key -> k)
 
-  (** Key to access the current span context. *)
+  (** Key to access the current span context. Uses the shared key from core. *)
   let k_span_ctx : OTEL.Span_ctx.t Ambient_context.Context.key =
-    Ambient_context.Context.new_key ()
+    OTEL.Span_ctx.k_ambient
 
   let enter_span (self : state) ~__FUNCTION__ ~__FILE__ ~__LINE__ ~level:_
       ~params:_ ~(data : (_ * Otrace.user_data) list) ~parent name : Otrace.span

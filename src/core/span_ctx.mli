@@ -36,7 +36,7 @@ val of_w3c_trace_context : bytes -> (t, string) result
 val of_w3c_trace_context_exn : bytes -> t
 (** @raise Invalid_argument if parsing failed *)
 
-val k_span_ctx : t Hmap.key
+val k_ambient : t Hmap.key
 (** Hmap key to carry around a {!Span_ctx.t}, e.g. to remember what the current
     parent span is.
     @since 0.8 *)

@@ -144,4 +144,4 @@ let set_status = span_set_status
 
 let set_kind = span_set_kind
 
-let k_context : t Context.key = Context.new_key ()
+let k_ambient : t Context.key = Context.new_key ()
