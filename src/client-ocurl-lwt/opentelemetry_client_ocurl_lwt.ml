@@ -29,11 +29,7 @@ module Httpc : Generic_http_consumer.HTTPC with module IO = IO = struct
   let send (self : t) ~url ~headers:user_headers ~decode (bod : string) :
       ('a, error) result Lwt.t =
     let* r =
-      let headers =
-        ("Content-Type", "application/x-protobuf")
-        :: ("Accept", "application/x-protobuf")
-        :: user_headers
-      in
+      let headers = user_headers in
       Ezcurl_lwt.post ~client:self ~headers ~params:[] ~url
         ~content:(`String bod) ()
     in

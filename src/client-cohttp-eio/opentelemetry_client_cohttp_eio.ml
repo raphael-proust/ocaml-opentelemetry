@@ -94,9 +94,6 @@ struct
 
       let open Cohttp in
       let headers = Header.(add_list (init ()) user_headers) in
-      let headers =
-        Header.(add headers "Content-Type" "application/x-protobuf")
-      in
 
       let body = Cohttp_eio.Body.of_string body in
       let r =

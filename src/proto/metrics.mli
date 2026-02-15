@@ -930,3 +930,135 @@ val decode_pb_metrics_data : Pbrt.Decoder.t -> metrics_data
 
 val decode_pb_data_point_flags : Pbrt.Decoder.t -> data_point_flags
 (** [decode_pb_data_point_flags decoder] decodes a [data_point_flags] binary value from [decoder] *)
+
+
+(** {2 Protobuf YoJson Encoding} *)
+
+val encode_json_exemplar_value : exemplar_value -> Yojson.Basic.t
+(** [encode_json_exemplar_value v encoder] encodes [v] to to json *)
+
+val encode_json_exemplar : exemplar -> Yojson.Basic.t
+(** [encode_json_exemplar v encoder] encodes [v] to to json *)
+
+val encode_json_number_data_point_value : number_data_point_value -> Yojson.Basic.t
+(** [encode_json_number_data_point_value v encoder] encodes [v] to to json *)
+
+val encode_json_number_data_point : number_data_point -> Yojson.Basic.t
+(** [encode_json_number_data_point v encoder] encodes [v] to to json *)
+
+val encode_json_gauge : gauge -> Yojson.Basic.t
+(** [encode_json_gauge v encoder] encodes [v] to to json *)
+
+val encode_json_aggregation_temporality : aggregation_temporality -> Yojson.Basic.t
+(** [encode_json_aggregation_temporality v encoder] encodes [v] to to json *)
+
+val encode_json_sum : sum -> Yojson.Basic.t
+(** [encode_json_sum v encoder] encodes [v] to to json *)
+
+val encode_json_histogram_data_point : histogram_data_point -> Yojson.Basic.t
+(** [encode_json_histogram_data_point v encoder] encodes [v] to to json *)
+
+val encode_json_histogram : histogram -> Yojson.Basic.t
+(** [encode_json_histogram v encoder] encodes [v] to to json *)
+
+val encode_json_exponential_histogram_data_point_buckets : exponential_histogram_data_point_buckets -> Yojson.Basic.t
+(** [encode_json_exponential_histogram_data_point_buckets v encoder] encodes [v] to to json *)
+
+val encode_json_exponential_histogram_data_point : exponential_histogram_data_point -> Yojson.Basic.t
+(** [encode_json_exponential_histogram_data_point v encoder] encodes [v] to to json *)
+
+val encode_json_exponential_histogram : exponential_histogram -> Yojson.Basic.t
+(** [encode_json_exponential_histogram v encoder] encodes [v] to to json *)
+
+val encode_json_summary_data_point_value_at_quantile : summary_data_point_value_at_quantile -> Yojson.Basic.t
+(** [encode_json_summary_data_point_value_at_quantile v encoder] encodes [v] to to json *)
+
+val encode_json_summary_data_point : summary_data_point -> Yojson.Basic.t
+(** [encode_json_summary_data_point v encoder] encodes [v] to to json *)
+
+val encode_json_summary : summary -> Yojson.Basic.t
+(** [encode_json_summary v encoder] encodes [v] to to json *)
+
+val encode_json_metric_data : metric_data -> Yojson.Basic.t
+(** [encode_json_metric_data v encoder] encodes [v] to to json *)
+
+val encode_json_metric : metric -> Yojson.Basic.t
+(** [encode_json_metric v encoder] encodes [v] to to json *)
+
+val encode_json_scope_metrics : scope_metrics -> Yojson.Basic.t
+(** [encode_json_scope_metrics v encoder] encodes [v] to to json *)
+
+val encode_json_resource_metrics : resource_metrics -> Yojson.Basic.t
+(** [encode_json_resource_metrics v encoder] encodes [v] to to json *)
+
+val encode_json_metrics_data : metrics_data -> Yojson.Basic.t
+(** [encode_json_metrics_data v encoder] encodes [v] to to json *)
+
+val encode_json_data_point_flags : data_point_flags -> Yojson.Basic.t
+(** [encode_json_data_point_flags v encoder] encodes [v] to to json *)
+
+
+(** {2 JSON Decoding} *)
+
+val decode_json_exemplar_value : Yojson.Basic.t -> exemplar_value
+(** [decode_json_exemplar_value decoder] decodes a [exemplar_value] value from [decoder] *)
+
+val decode_json_exemplar : Yojson.Basic.t -> exemplar
+(** [decode_json_exemplar decoder] decodes a [exemplar] value from [decoder] *)
+
+val decode_json_number_data_point_value : Yojson.Basic.t -> number_data_point_value
+(** [decode_json_number_data_point_value decoder] decodes a [number_data_point_value] value from [decoder] *)
+
+val decode_json_number_data_point : Yojson.Basic.t -> number_data_point
+(** [decode_json_number_data_point decoder] decodes a [number_data_point] value from [decoder] *)
+
+val decode_json_gauge : Yojson.Basic.t -> gauge
+(** [decode_json_gauge decoder] decodes a [gauge] value from [decoder] *)
+
+val decode_json_aggregation_temporality : Yojson.Basic.t -> aggregation_temporality
+(** [decode_json_aggregation_temporality decoder] decodes a [aggregation_temporality] value from [decoder] *)
+
+val decode_json_sum : Yojson.Basic.t -> sum
+(** [decode_json_sum decoder] decodes a [sum] value from [decoder] *)
+
+val decode_json_histogram_data_point : Yojson.Basic.t -> histogram_data_point
+(** [decode_json_histogram_data_point decoder] decodes a [histogram_data_point] value from [decoder] *)
+
+val decode_json_histogram : Yojson.Basic.t -> histogram
+(** [decode_json_histogram decoder] decodes a [histogram] value from [decoder] *)
+
+val decode_json_exponential_histogram_data_point_buckets : Yojson.Basic.t -> exponential_histogram_data_point_buckets
+(** [decode_json_exponential_histogram_data_point_buckets decoder] decodes a [exponential_histogram_data_point_buckets] value from [decoder] *)
+
+val decode_json_exponential_histogram_data_point : Yojson.Basic.t -> exponential_histogram_data_point
+(** [decode_json_exponential_histogram_data_point decoder] decodes a [exponential_histogram_data_point] value from [decoder] *)
+
+val decode_json_exponential_histogram : Yojson.Basic.t -> exponential_histogram
+(** [decode_json_exponential_histogram decoder] decodes a [exponential_histogram] value from [decoder] *)
+
+val decode_json_summary_data_point_value_at_quantile : Yojson.Basic.t -> summary_data_point_value_at_quantile
+(** [decode_json_summary_data_point_value_at_quantile decoder] decodes a [summary_data_point_value_at_quantile] value from [decoder] *)
+
+val decode_json_summary_data_point : Yojson.Basic.t -> summary_data_point
+(** [decode_json_summary_data_point decoder] decodes a [summary_data_point] value from [decoder] *)
+
+val decode_json_summary : Yojson.Basic.t -> summary
+(** [decode_json_summary decoder] decodes a [summary] value from [decoder] *)
+
+val decode_json_metric_data : Yojson.Basic.t -> metric_data
+(** [decode_json_metric_data decoder] decodes a [metric_data] value from [decoder] *)
+
+val decode_json_metric : Yojson.Basic.t -> metric
+(** [decode_json_metric decoder] decodes a [metric] value from [decoder] *)
+
+val decode_json_scope_metrics : Yojson.Basic.t -> scope_metrics
+(** [decode_json_scope_metrics decoder] decodes a [scope_metrics] value from [decoder] *)
+
+val decode_json_resource_metrics : Yojson.Basic.t -> resource_metrics
+(** [decode_json_resource_metrics decoder] decodes a [resource_metrics] value from [decoder] *)
+
+val decode_json_metrics_data : Yojson.Basic.t -> metrics_data
+(** [decode_json_metrics_data decoder] decodes a [metrics_data] value from [decoder] *)
+
+val decode_json_data_point_flags : Yojson.Basic.t -> data_point_flags
+(** [decode_json_data_point_flags decoder] decodes a [data_point_flags] value from [decoder] *)

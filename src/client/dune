@@ -12,6 +12,7 @@
   mtime.clock.os
   unix
   pbrt
+  yojson
   threads.posix)
  (synopsis
   "Basic exporters, as well as common types and logic shared between exporters"))

@@ -1030,3 +1030,425 @@ let rec decode_pb_span_flags d : span_flags =
   | 256 -> Span_flags_context_has_is_remote_mask
   | 512 -> Span_flags_context_is_remote_mask
   | _ -> Pbrt.Decoder.malformed_variant "span_flags"
+
+[@@@ocaml.warning "-23-27-30-39"]
+
+(** {2 Protobuf YoJson Encoding} *)
+
+let rec encode_json_span_span_kind (v:span_span_kind) = 
+  match v with
+  | Span_kind_unspecified -> `String "SPAN_KIND_UNSPECIFIED"
+  | Span_kind_internal -> `String "SPAN_KIND_INTERNAL"
+  | Span_kind_server -> `String "SPAN_KIND_SERVER"
+  | Span_kind_client -> `String "SPAN_KIND_CLIENT"
+  | Span_kind_producer -> `String "SPAN_KIND_PRODUCER"
+  | Span_kind_consumer -> `String "SPAN_KIND_CONSUMER"
+
+let rec encode_json_span_event (v:span_event) = 
+  let assoc = ref [] in
+  if span_event_has_time_unix_nano v then (
+    assoc := ("timeUnixNano", Pbrt_yojson.make_string (Int64.to_string v.time_unix_nano)) :: !assoc;
+  );
+  if span_event_has_name v then (
+    assoc := ("name", Pbrt_yojson.make_string v.name) :: !assoc;
+  );
+  assoc := (
+    let l = v.attributes |> List.map Common.encode_json_key_value in
+    ("attributes", `List l) :: !assoc 
+  );
+  if span_event_has_dropped_attributes_count v then (
+    assoc := ("droppedAttributesCount", Pbrt_yojson.make_int (Int32.to_int v.dropped_attributes_count)) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_span_link (v:span_link) = 
+  let assoc = ref [] in
+  if span_link_has_trace_id v then (
+    assoc := ("traceId", Pbrt_yojson.make_bytes v.trace_id) :: !assoc;
+  );
+  if span_link_has_span_id v then (
+    assoc := ("spanId", Pbrt_yojson.make_bytes v.span_id) :: !assoc;
+  );
+  if span_link_has_trace_state v then (
+    assoc := ("traceState", Pbrt_yojson.make_string v.trace_state) :: !assoc;
+  );
+  assoc := (
+    let l = v.attributes |> List.map Common.encode_json_key_value in
+    ("attributes", `List l) :: !assoc 
+  );
+  if span_link_has_dropped_attributes_count v then (
+    assoc := ("droppedAttributesCount", Pbrt_yojson.make_int (Int32.to_int v.dropped_attributes_count)) :: !assoc;
+  );
+  if span_link_has_flags v then (
+    assoc := ("flags", Pbrt_yojson.make_int (Int32.to_int v.flags)) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_status_status_code (v:status_status_code) = 
+  match v with
+  | Status_code_unset -> `String "STATUS_CODE_UNSET"
+  | Status_code_ok -> `String "STATUS_CODE_OK"
+  | Status_code_error -> `String "STATUS_CODE_ERROR"
+
+let rec encode_json_status (v:status) = 
+  let assoc = ref [] in
+  if status_has_message v then (
+    assoc := ("message", Pbrt_yojson.make_string v.message) :: !assoc;
+  );
+  if status_has_code v then (
+    assoc := ("code", encode_json_status_status_code v.code) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_span (v:span) = 
+  let assoc = ref [] in
+  if span_has_trace_id v then (
+    assoc := ("traceId", Pbrt_yojson.make_bytes v.trace_id) :: !assoc;
+  );
+  if span_has_span_id v then (
+    assoc := ("spanId", Pbrt_yojson.make_bytes v.span_id) :: !assoc;
+  );
+  if span_has_trace_state v then (
+    assoc := ("traceState", Pbrt_yojson.make_string v.trace_state) :: !assoc;
+  );
+  if span_has_parent_span_id v then (
+    assoc := ("parentSpanId", Pbrt_yojson.make_bytes v.parent_span_id) :: !assoc;
+  );
+  if span_has_flags v then (
+    assoc := ("flags", Pbrt_yojson.make_int (Int32.to_int v.flags)) :: !assoc;
+  );
+  if span_has_name v then (
+    assoc := ("name", Pbrt_yojson.make_string v.name) :: !assoc;
+  );
+  if span_has_kind v then (
+    assoc := ("kind", encode_json_span_span_kind v.kind) :: !assoc;
+  );
+  if span_has_start_time_unix_nano v then (
+    assoc := ("startTimeUnixNano", Pbrt_yojson.make_string (Int64.to_string v.start_time_unix_nano)) :: !assoc;
+  );
+  if span_has_end_time_unix_nano v then (
+    assoc := ("endTimeUnixNano", Pbrt_yojson.make_string (Int64.to_string v.end_time_unix_nano)) :: !assoc;
+  );
+  assoc := (
+    let l = v.attributes |> List.map Common.encode_json_key_value in
+    ("attributes", `List l) :: !assoc 
+  );
+  if span_has_dropped_attributes_count v then (
+    assoc := ("droppedAttributesCount", Pbrt_yojson.make_int (Int32.to_int v.dropped_attributes_count)) :: !assoc;
+  );
+  assoc := (
+    let l = v.events |> List.map encode_json_span_event in
+    ("events", `List l) :: !assoc 
+  );
+  if span_has_dropped_events_count v then (
+    assoc := ("droppedEventsCount", Pbrt_yojson.make_int (Int32.to_int v.dropped_events_count)) :: !assoc;
+  );
+  assoc := (
+    let l = v.links |> List.map encode_json_span_link in
+    ("links", `List l) :: !assoc 
+  );
+  if span_has_dropped_links_count v then (
+    assoc := ("droppedLinksCount", Pbrt_yojson.make_int (Int32.to_int v.dropped_links_count)) :: !assoc;
+  );
+  assoc := (match v.status with
+    | None -> !assoc
+    | Some v -> ("status", encode_json_status v) :: !assoc);
+  `Assoc !assoc
+
+let rec encode_json_scope_spans (v:scope_spans) = 
+  let assoc = ref [] in
+  assoc := (match v.scope with
+    | None -> !assoc
+    | Some v -> ("scope", Common.encode_json_instrumentation_scope v) :: !assoc);
+  assoc := (
+    let l = v.spans |> List.map encode_json_span in
+    ("spans", `List l) :: !assoc 
+  );
+  if scope_spans_has_schema_url v then (
+    assoc := ("schemaUrl", Pbrt_yojson.make_string v.schema_url) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_resource_spans (v:resource_spans) = 
+  let assoc = ref [] in
+  assoc := (match v.resource with
+    | None -> !assoc
+    | Some v -> ("resource", Resource.encode_json_resource v) :: !assoc);
+  assoc := (
+    let l = v.scope_spans |> List.map encode_json_scope_spans in
+    ("scopeSpans", `List l) :: !assoc 
+  );
+  if resource_spans_has_schema_url v then (
+    assoc := ("schemaUrl", Pbrt_yojson.make_string v.schema_url) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_traces_data (v:traces_data) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.resource_spans |> List.map encode_json_resource_spans in
+    ("resourceSpans", `List l) :: !assoc 
+  );
+  `Assoc !assoc
+
+let rec encode_json_span_flags (v:span_flags) = 
+  match v with
+  | Span_flags_do_not_use -> `String "SPAN_FLAGS_DO_NOT_USE"
+  | Span_flags_trace_flags_mask -> `String "SPAN_FLAGS_TRACE_FLAGS_MASK"
+  | Span_flags_context_has_is_remote_mask -> `String "SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK"
+  | Span_flags_context_is_remote_mask -> `String "SPAN_FLAGS_CONTEXT_IS_REMOTE_MASK"
+
+[@@@ocaml.warning "-23-27-30-39"]
+
+(** {2 JSON Decoding} *)
+
+let rec decode_json_span_span_kind json =
+  match json with
+  | `String "SPAN_KIND_UNSPECIFIED" -> (Span_kind_unspecified : span_span_kind)
+  | `String "SPAN_KIND_INTERNAL" -> (Span_kind_internal : span_span_kind)
+  | `String "SPAN_KIND_SERVER" -> (Span_kind_server : span_span_kind)
+  | `String "SPAN_KIND_CLIENT" -> (Span_kind_client : span_span_kind)
+  | `String "SPAN_KIND_PRODUCER" -> (Span_kind_producer : span_span_kind)
+  | `String "SPAN_KIND_CONSUMER" -> (Span_kind_consumer : span_span_kind)
+  | _ -> Pbrt_yojson.E.malformed_variant "span_span_kind"
+
+let rec decode_json_span_event d =
+  let v = default_span_event () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("timeUnixNano", json_value) -> 
+      span_event_set_time_unix_nano v (Pbrt_yojson.int64 json_value "span_event" "time_unix_nano")
+    | ("name", json_value) -> 
+      span_event_set_name v (Pbrt_yojson.string json_value "span_event" "name")
+    | ("attributes", `List l) -> begin
+      span_event_set_attributes v @@ List.map (function
+        | json_value -> (Common.decode_json_key_value json_value)
+      ) l;
+    end
+    | ("droppedAttributesCount", json_value) -> 
+      span_event_set_dropped_attributes_count v (Pbrt_yojson.int32 json_value "span_event" "dropped_attributes_count")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    time_unix_nano = v.time_unix_nano;
+    name = v.name;
+    attributes = v.attributes;
+    dropped_attributes_count = v.dropped_attributes_count;
+  } : span_event)
+
+let rec decode_json_span_link d =
+  let v = default_span_link () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("traceId", json_value) -> 
+      span_link_set_trace_id v (Pbrt_yojson.bytes json_value "span_link" "trace_id")
+    | ("spanId", json_value) -> 
+      span_link_set_span_id v (Pbrt_yojson.bytes json_value "span_link" "span_id")
+    | ("traceState", json_value) -> 
+      span_link_set_trace_state v (Pbrt_yojson.string json_value "span_link" "trace_state")
+    | ("attributes", `List l) -> begin
+      span_link_set_attributes v @@ List.map (function
+        | json_value -> (Common.decode_json_key_value json_value)
+      ) l;
+    end
+    | ("droppedAttributesCount", json_value) -> 
+      span_link_set_dropped_attributes_count v (Pbrt_yojson.int32 json_value "span_link" "dropped_attributes_count")
+    | ("flags", json_value) -> 
+      span_link_set_flags v (Pbrt_yojson.int32 json_value "span_link" "flags")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    trace_id = v.trace_id;
+    span_id = v.span_id;
+    trace_state = v.trace_state;
+    attributes = v.attributes;
+    dropped_attributes_count = v.dropped_attributes_count;
+    flags = v.flags;
+  } : span_link)
+
+let rec decode_json_status_status_code json =
+  match json with
+  | `String "STATUS_CODE_UNSET" -> (Status_code_unset : status_status_code)
+  | `String "STATUS_CODE_OK" -> (Status_code_ok : status_status_code)
+  | `String "STATUS_CODE_ERROR" -> (Status_code_error : status_status_code)
+  | _ -> Pbrt_yojson.E.malformed_variant "status_status_code"
+
+let rec decode_json_status d =
+  let v = default_status () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("message", json_value) -> 
+      status_set_message v (Pbrt_yojson.string json_value "status" "message")
+    | ("code", json_value) -> 
+      status_set_code v ((decode_json_status_status_code json_value))
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    message = v.message;
+    code = v.code;
+  } : status)
+
+let rec decode_json_span d =
+  let v = default_span () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("traceId", json_value) -> 
+      span_set_trace_id v (Pbrt_yojson.bytes json_value "span" "trace_id")
+    | ("spanId", json_value) -> 
+      span_set_span_id v (Pbrt_yojson.bytes json_value "span" "span_id")
+    | ("traceState", json_value) -> 
+      span_set_trace_state v (Pbrt_yojson.string json_value "span" "trace_state")
+    | ("parentSpanId", json_value) -> 
+      span_set_parent_span_id v (Pbrt_yojson.bytes json_value "span" "parent_span_id")
+    | ("flags", json_value) -> 
+      span_set_flags v (Pbrt_yojson.int32 json_value "span" "flags")
+    | ("name", json_value) -> 
+      span_set_name v (Pbrt_yojson.string json_value "span" "name")
+    | ("kind", json_value) -> 
+      span_set_kind v ((decode_json_span_span_kind json_value))
+    | ("startTimeUnixNano", json_value) -> 
+      span_set_start_time_unix_nano v (Pbrt_yojson.int64 json_value "span" "start_time_unix_nano")
+    | ("endTimeUnixNano", json_value) -> 
+      span_set_end_time_unix_nano v (Pbrt_yojson.int64 json_value "span" "end_time_unix_nano")
+    | ("attributes", `List l) -> begin
+      span_set_attributes v @@ List.map (function
+        | json_value -> (Common.decode_json_key_value json_value)
+      ) l;
+    end
+    | ("droppedAttributesCount", json_value) -> 
+      span_set_dropped_attributes_count v (Pbrt_yojson.int32 json_value "span" "dropped_attributes_count")
+    | ("events", `List l) -> begin
+      span_set_events v @@ List.map (function
+        | json_value -> (decode_json_span_event json_value)
+      ) l;
+    end
+    | ("droppedEventsCount", json_value) -> 
+      span_set_dropped_events_count v (Pbrt_yojson.int32 json_value "span" "dropped_events_count")
+    | ("links", `List l) -> begin
+      span_set_links v @@ List.map (function
+        | json_value -> (decode_json_span_link json_value)
+      ) l;
+    end
+    | ("droppedLinksCount", json_value) -> 
+      span_set_dropped_links_count v (Pbrt_yojson.int32 json_value "span" "dropped_links_count")
+    | ("status", json_value) -> 
+      span_set_status v (decode_json_status json_value)
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    trace_id = v.trace_id;
+    span_id = v.span_id;
+    trace_state = v.trace_state;
+    parent_span_id = v.parent_span_id;
+    flags = v.flags;
+    name = v.name;
+    kind = v.kind;
+    start_time_unix_nano = v.start_time_unix_nano;
+    end_time_unix_nano = v.end_time_unix_nano;
+    attributes = v.attributes;
+    dropped_attributes_count = v.dropped_attributes_count;
+    events = v.events;
+    dropped_events_count = v.dropped_events_count;
+    links = v.links;
+    dropped_links_count = v.dropped_links_count;
+    status = v.status;
+  } : span)
+
+let rec decode_json_scope_spans d =
+  let v = default_scope_spans () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("scope", json_value) -> 
+      scope_spans_set_scope v (Common.decode_json_instrumentation_scope json_value)
+    | ("spans", `List l) -> begin
+      scope_spans_set_spans v @@ List.map (function
+        | json_value -> (decode_json_span json_value)
+      ) l;
+    end
+    | ("schemaUrl", json_value) -> 
+      scope_spans_set_schema_url v (Pbrt_yojson.string json_value "scope_spans" "schema_url")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    scope = v.scope;
+    spans = v.spans;
+    schema_url = v.schema_url;
+  } : scope_spans)
+
+let rec decode_json_resource_spans d =
+  let v = default_resource_spans () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("resource", json_value) -> 
+      resource_spans_set_resource v (Resource.decode_json_resource json_value)
+    | ("scopeSpans", `List l) -> begin
+      resource_spans_set_scope_spans v @@ List.map (function
+        | json_value -> (decode_json_scope_spans json_value)
+      ) l;
+    end
+    | ("schemaUrl", json_value) -> 
+      resource_spans_set_schema_url v (Pbrt_yojson.string json_value "resource_spans" "schema_url")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    resource = v.resource;
+    scope_spans = v.scope_spans;
+    schema_url = v.schema_url;
+  } : resource_spans)
+
+let rec decode_json_traces_data d =
+  let v = default_traces_data () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("resourceSpans", `List l) -> begin
+      traces_data_set_resource_spans v @@ List.map (function
+        | json_value -> (decode_json_resource_spans json_value)
+      ) l;
+    end
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    resource_spans = v.resource_spans;
+  } : traces_data)
+
+let rec decode_json_span_flags json =
+  match json with
+  | `String "SPAN_FLAGS_DO_NOT_USE" -> (Span_flags_do_not_use : span_flags)
+  | `String "SPAN_FLAGS_TRACE_FLAGS_MASK" -> (Span_flags_trace_flags_mask : span_flags)
+  | `String "SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK" -> (Span_flags_context_has_is_remote_mask : span_flags)
+  | `String "SPAN_FLAGS_CONTEXT_IS_REMOTE_MASK" -> (Span_flags_context_is_remote_mask : span_flags)
+  | _ -> Pbrt_yojson.E.malformed_variant "span_flags"

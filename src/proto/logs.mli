@@ -290,3 +290,45 @@ val decode_pb_logs_data : Pbrt.Decoder.t -> logs_data
 
 val decode_pb_log_record_flags : Pbrt.Decoder.t -> log_record_flags
 (** [decode_pb_log_record_flags decoder] decodes a [log_record_flags] binary value from [decoder] *)
+
+
+(** {2 Protobuf YoJson Encoding} *)
+
+val encode_json_severity_number : severity_number -> Yojson.Basic.t
+(** [encode_json_severity_number v encoder] encodes [v] to to json *)
+
+val encode_json_log_record : log_record -> Yojson.Basic.t
+(** [encode_json_log_record v encoder] encodes [v] to to json *)
+
+val encode_json_scope_logs : scope_logs -> Yojson.Basic.t
+(** [encode_json_scope_logs v encoder] encodes [v] to to json *)
+
+val encode_json_resource_logs : resource_logs -> Yojson.Basic.t
+(** [encode_json_resource_logs v encoder] encodes [v] to to json *)
+
+val encode_json_logs_data : logs_data -> Yojson.Basic.t
+(** [encode_json_logs_data v encoder] encodes [v] to to json *)
+
+val encode_json_log_record_flags : log_record_flags -> Yojson.Basic.t
+(** [encode_json_log_record_flags v encoder] encodes [v] to to json *)
+
+
+(** {2 JSON Decoding} *)
+
+val decode_json_severity_number : Yojson.Basic.t -> severity_number
+(** [decode_json_severity_number decoder] decodes a [severity_number] value from [decoder] *)
+
+val decode_json_log_record : Yojson.Basic.t -> log_record
+(** [decode_json_log_record decoder] decodes a [log_record] value from [decoder] *)
+
+val decode_json_scope_logs : Yojson.Basic.t -> scope_logs
+(** [decode_json_scope_logs decoder] decodes a [scope_logs] value from [decoder] *)
+
+val decode_json_resource_logs : Yojson.Basic.t -> resource_logs
+(** [decode_json_resource_logs decoder] decodes a [resource_logs] value from [decoder] *)
+
+val decode_json_logs_data : Yojson.Basic.t -> logs_data
+(** [decode_json_logs_data decoder] decodes a [logs_data] value from [decoder] *)
+
+val decode_json_log_record_flags : Yojson.Basic.t -> log_record_flags
+(** [decode_json_log_record_flags decoder] decodes a [log_record_flags] value from [decoder] *)

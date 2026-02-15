@@ -83,8 +83,20 @@ end = struct
           (fun (k, _) -> not (List.mem k signal_keys))
           self.config.headers
       in
-      let headers = List.rev_append signal_headers filtered_general in
-      let data = Resource_signal.Encode.any ~encoder:self.encoder res in
+      let content_type =
+        match self.config.protocol with
+        | Http_protobuf -> "application/x-protobuf"
+        | Http_json -> "application/json"
+      in
+      let headers =
+        ("Content-Type", content_type)
+        :: ("Accept", content_type)
+        :: List.rev_append signal_headers filtered_general
+      in
+      let data =
+        Resource_signal.Encode.any ~encoder:self.encoder
+          ~protocol:self.config.protocol res
+      in
 
       (* Retry loop with exponential backoff *)
       let rec retry_send attempt delay_ms =

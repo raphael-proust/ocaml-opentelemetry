@@ -2116,3 +2116,908 @@ let rec decode_pb_data_point_flags d : data_point_flags =
   | 0 -> Data_point_flags_do_not_use
   | 1 -> Data_point_flags_no_recorded_value_mask
   | _ -> Pbrt.Decoder.malformed_variant "data_point_flags"
+
+[@@@ocaml.warning "-23-27-30-39"]
+
+(** {2 Protobuf YoJson Encoding} *)
+
+let rec encode_json_exemplar_value (v:exemplar_value) = 
+  begin match v with
+  | As_double v -> `Assoc [("asDouble", Pbrt_yojson.make_string (string_of_float v))]
+  | As_int v -> `Assoc [("asInt", Pbrt_yojson.make_string (Int64.to_string v))]
+  end
+
+and encode_json_exemplar (v:exemplar) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.filtered_attributes |> List.map Common.encode_json_key_value in
+    ("filteredAttributes", `List l) :: !assoc 
+  );
+  if exemplar_has_time_unix_nano v then (
+    assoc := ("timeUnixNano", Pbrt_yojson.make_string (Int64.to_string v.time_unix_nano)) :: !assoc;
+  );
+  assoc := (match v.value with
+      | None -> !assoc
+      | Some (As_double v) -> ("asDouble", Pbrt_yojson.make_string (string_of_float v)) :: !assoc
+      | Some (As_int v) -> ("asInt", Pbrt_yojson.make_string (Int64.to_string v)) :: !assoc
+  ); (* match v.value *)
+  if exemplar_has_span_id v then (
+    assoc := ("spanId", Pbrt_yojson.make_bytes v.span_id) :: !assoc;
+  );
+  if exemplar_has_trace_id v then (
+    assoc := ("traceId", Pbrt_yojson.make_bytes v.trace_id) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_number_data_point_value (v:number_data_point_value) = 
+  begin match v with
+  | As_double v -> `Assoc [("asDouble", Pbrt_yojson.make_string (string_of_float v))]
+  | As_int v -> `Assoc [("asInt", Pbrt_yojson.make_string (Int64.to_string v))]
+  end
+
+and encode_json_number_data_point (v:number_data_point) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.attributes |> List.map Common.encode_json_key_value in
+    ("attributes", `List l) :: !assoc 
+  );
+  if number_data_point_has_start_time_unix_nano v then (
+    assoc := ("startTimeUnixNano", Pbrt_yojson.make_string (Int64.to_string v.start_time_unix_nano)) :: !assoc;
+  );
+  if number_data_point_has_time_unix_nano v then (
+    assoc := ("timeUnixNano", Pbrt_yojson.make_string (Int64.to_string v.time_unix_nano)) :: !assoc;
+  );
+  assoc := (match v.value with
+      | None -> !assoc
+      | Some (As_double v) -> ("asDouble", Pbrt_yojson.make_string (string_of_float v)) :: !assoc
+      | Some (As_int v) -> ("asInt", Pbrt_yojson.make_string (Int64.to_string v)) :: !assoc
+  ); (* match v.value *)
+  assoc := (
+    let l = v.exemplars |> List.map encode_json_exemplar in
+    ("exemplars", `List l) :: !assoc 
+  );
+  if number_data_point_has_flags v then (
+    assoc := ("flags", Pbrt_yojson.make_int (Int32.to_int v.flags)) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_gauge (v:gauge) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.data_points |> List.map encode_json_number_data_point in
+    ("dataPoints", `List l) :: !assoc 
+  );
+  `Assoc !assoc
+
+let rec encode_json_aggregation_temporality (v:aggregation_temporality) = 
+  match v with
+  | Aggregation_temporality_unspecified -> `String "AGGREGATION_TEMPORALITY_UNSPECIFIED"
+  | Aggregation_temporality_delta -> `String "AGGREGATION_TEMPORALITY_DELTA"
+  | Aggregation_temporality_cumulative -> `String "AGGREGATION_TEMPORALITY_CUMULATIVE"
+
+let rec encode_json_sum (v:sum) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.data_points |> List.map encode_json_number_data_point in
+    ("dataPoints", `List l) :: !assoc 
+  );
+  if sum_has_aggregation_temporality v then (
+    assoc := ("aggregationTemporality", encode_json_aggregation_temporality v.aggregation_temporality) :: !assoc;
+  );
+  if sum_has_is_monotonic v then (
+    assoc := ("isMonotonic", Pbrt_yojson.make_bool v.is_monotonic) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_histogram_data_point (v:histogram_data_point) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.attributes |> List.map Common.encode_json_key_value in
+    ("attributes", `List l) :: !assoc 
+  );
+  if histogram_data_point_has_start_time_unix_nano v then (
+    assoc := ("startTimeUnixNano", Pbrt_yojson.make_string (Int64.to_string v.start_time_unix_nano)) :: !assoc;
+  );
+  if histogram_data_point_has_time_unix_nano v then (
+    assoc := ("timeUnixNano", Pbrt_yojson.make_string (Int64.to_string v.time_unix_nano)) :: !assoc;
+  );
+  if histogram_data_point_has_count v then (
+    assoc := ("count", Pbrt_yojson.make_string (Int64.to_string v.count)) :: !assoc;
+  );
+  if histogram_data_point_has_sum v then (
+    assoc := ("sum", Pbrt_yojson.make_string (string_of_float v.sum)) :: !assoc;
+  );
+  assoc := (
+    let l = v.bucket_counts |> List.map Int64.to_string |> List.map Pbrt_yojson.make_string in 
+    ("bucketCounts", `List l) :: !assoc 
+  );
+  assoc := (
+    let l = v.explicit_bounds |> List.map string_of_float |> List.map Pbrt_yojson.make_string in 
+    ("explicitBounds", `List l) :: !assoc 
+  );
+  assoc := (
+    let l = v.exemplars |> List.map encode_json_exemplar in
+    ("exemplars", `List l) :: !assoc 
+  );
+  if histogram_data_point_has_flags v then (
+    assoc := ("flags", Pbrt_yojson.make_int (Int32.to_int v.flags)) :: !assoc;
+  );
+  if histogram_data_point_has_min v then (
+    assoc := ("min", Pbrt_yojson.make_string (string_of_float v.min)) :: !assoc;
+  );
+  if histogram_data_point_has_max v then (
+    assoc := ("max", Pbrt_yojson.make_string (string_of_float v.max)) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_histogram (v:histogram) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.data_points |> List.map encode_json_histogram_data_point in
+    ("dataPoints", `List l) :: !assoc 
+  );
+  if histogram_has_aggregation_temporality v then (
+    assoc := ("aggregationTemporality", encode_json_aggregation_temporality v.aggregation_temporality) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_exponential_histogram_data_point_buckets (v:exponential_histogram_data_point_buckets) = 
+  let assoc = ref [] in
+  if exponential_histogram_data_point_buckets_has_offset v then (
+    assoc := ("offset", Pbrt_yojson.make_int (Int32.to_int v.offset)) :: !assoc;
+  );
+  assoc := (
+    let l = v.bucket_counts |> List.map Int64.to_string |> List.map Pbrt_yojson.make_string in 
+    ("bucketCounts", `List l) :: !assoc 
+  );
+  `Assoc !assoc
+
+let rec encode_json_exponential_histogram_data_point (v:exponential_histogram_data_point) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.attributes |> List.map Common.encode_json_key_value in
+    ("attributes", `List l) :: !assoc 
+  );
+  if exponential_histogram_data_point_has_start_time_unix_nano v then (
+    assoc := ("startTimeUnixNano", Pbrt_yojson.make_string (Int64.to_string v.start_time_unix_nano)) :: !assoc;
+  );
+  if exponential_histogram_data_point_has_time_unix_nano v then (
+    assoc := ("timeUnixNano", Pbrt_yojson.make_string (Int64.to_string v.time_unix_nano)) :: !assoc;
+  );
+  if exponential_histogram_data_point_has_count v then (
+    assoc := ("count", Pbrt_yojson.make_string (Int64.to_string v.count)) :: !assoc;
+  );
+  if exponential_histogram_data_point_has_sum v then (
+    assoc := ("sum", Pbrt_yojson.make_string (string_of_float v.sum)) :: !assoc;
+  );
+  if exponential_histogram_data_point_has_scale v then (
+    assoc := ("scale", Pbrt_yojson.make_int (Int32.to_int v.scale)) :: !assoc;
+  );
+  if exponential_histogram_data_point_has_zero_count v then (
+    assoc := ("zeroCount", Pbrt_yojson.make_string (Int64.to_string v.zero_count)) :: !assoc;
+  );
+  assoc := (match v.positive with
+    | None -> !assoc
+    | Some v -> ("positive", encode_json_exponential_histogram_data_point_buckets v) :: !assoc);
+  assoc := (match v.negative with
+    | None -> !assoc
+    | Some v -> ("negative", encode_json_exponential_histogram_data_point_buckets v) :: !assoc);
+  if exponential_histogram_data_point_has_flags v then (
+    assoc := ("flags", Pbrt_yojson.make_int (Int32.to_int v.flags)) :: !assoc;
+  );
+  assoc := (
+    let l = v.exemplars |> List.map encode_json_exemplar in
+    ("exemplars", `List l) :: !assoc 
+  );
+  if exponential_histogram_data_point_has_min v then (
+    assoc := ("min", Pbrt_yojson.make_string (string_of_float v.min)) :: !assoc;
+  );
+  if exponential_histogram_data_point_has_max v then (
+    assoc := ("max", Pbrt_yojson.make_string (string_of_float v.max)) :: !assoc;
+  );
+  if exponential_histogram_data_point_has_zero_threshold v then (
+    assoc := ("zeroThreshold", Pbrt_yojson.make_string (string_of_float v.zero_threshold)) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_exponential_histogram (v:exponential_histogram) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.data_points |> List.map encode_json_exponential_histogram_data_point in
+    ("dataPoints", `List l) :: !assoc 
+  );
+  if exponential_histogram_has_aggregation_temporality v then (
+    assoc := ("aggregationTemporality", encode_json_aggregation_temporality v.aggregation_temporality) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_summary_data_point_value_at_quantile (v:summary_data_point_value_at_quantile) = 
+  let assoc = ref [] in
+  if summary_data_point_value_at_quantile_has_quantile v then (
+    assoc := ("quantile", Pbrt_yojson.make_string (string_of_float v.quantile)) :: !assoc;
+  );
+  if summary_data_point_value_at_quantile_has_value v then (
+    assoc := ("value", Pbrt_yojson.make_string (string_of_float v.value)) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_summary_data_point (v:summary_data_point) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.attributes |> List.map Common.encode_json_key_value in
+    ("attributes", `List l) :: !assoc 
+  );
+  if summary_data_point_has_start_time_unix_nano v then (
+    assoc := ("startTimeUnixNano", Pbrt_yojson.make_string (Int64.to_string v.start_time_unix_nano)) :: !assoc;
+  );
+  if summary_data_point_has_time_unix_nano v then (
+    assoc := ("timeUnixNano", Pbrt_yojson.make_string (Int64.to_string v.time_unix_nano)) :: !assoc;
+  );
+  if summary_data_point_has_count v then (
+    assoc := ("count", Pbrt_yojson.make_string (Int64.to_string v.count)) :: !assoc;
+  );
+  if summary_data_point_has_sum v then (
+    assoc := ("sum", Pbrt_yojson.make_string (string_of_float v.sum)) :: !assoc;
+  );
+  assoc := (
+    let l = v.quantile_values |> List.map encode_json_summary_data_point_value_at_quantile in
+    ("quantileValues", `List l) :: !assoc 
+  );
+  if summary_data_point_has_flags v then (
+    assoc := ("flags", Pbrt_yojson.make_int (Int32.to_int v.flags)) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_summary (v:summary) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.data_points |> List.map encode_json_summary_data_point in
+    ("dataPoints", `List l) :: !assoc 
+  );
+  `Assoc !assoc
+
+let rec encode_json_metric_data (v:metric_data) = 
+  begin match v with
+  | Gauge v -> `Assoc [("gauge", encode_json_gauge v)]
+  | Sum v -> `Assoc [("sum", encode_json_sum v)]
+  | Histogram v -> `Assoc [("histogram", encode_json_histogram v)]
+  | Exponential_histogram v -> `Assoc [("exponentialHistogram", encode_json_exponential_histogram v)]
+  | Summary v -> `Assoc [("summary", encode_json_summary v)]
+  end
+
+and encode_json_metric (v:metric) = 
+  let assoc = ref [] in
+  if metric_has_name v then (
+    assoc := ("name", Pbrt_yojson.make_string v.name) :: !assoc;
+  );
+  if metric_has_description v then (
+    assoc := ("description", Pbrt_yojson.make_string v.description) :: !assoc;
+  );
+  if metric_has_unit_ v then (
+    assoc := ("unit", Pbrt_yojson.make_string v.unit_) :: !assoc;
+  );
+  assoc := (match v.data with
+      | None -> !assoc
+      | Some (Gauge v) -> ("gauge", encode_json_gauge v) :: !assoc
+      | Some (Sum v) -> ("sum", encode_json_sum v) :: !assoc
+      | Some (Histogram v) -> ("histogram", encode_json_histogram v) :: !assoc
+      | Some (Exponential_histogram v) -> ("exponentialHistogram", encode_json_exponential_histogram v) :: !assoc
+      | Some (Summary v) -> ("summary", encode_json_summary v) :: !assoc
+  ); (* match v.data *)
+  assoc := (
+    let l = v.metadata |> List.map Common.encode_json_key_value in
+    ("metadata", `List l) :: !assoc 
+  );
+  `Assoc !assoc
+
+let rec encode_json_scope_metrics (v:scope_metrics) = 
+  let assoc = ref [] in
+  assoc := (match v.scope with
+    | None -> !assoc
+    | Some v -> ("scope", Common.encode_json_instrumentation_scope v) :: !assoc);
+  assoc := (
+    let l = v.metrics |> List.map encode_json_metric in
+    ("metrics", `List l) :: !assoc 
+  );
+  if scope_metrics_has_schema_url v then (
+    assoc := ("schemaUrl", Pbrt_yojson.make_string v.schema_url) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_resource_metrics (v:resource_metrics) = 
+  let assoc = ref [] in
+  assoc := (match v.resource with
+    | None -> !assoc
+    | Some v -> ("resource", Resource.encode_json_resource v) :: !assoc);
+  assoc := (
+    let l = v.scope_metrics |> List.map encode_json_scope_metrics in
+    ("scopeMetrics", `List l) :: !assoc 
+  );
+  if resource_metrics_has_schema_url v then (
+    assoc := ("schemaUrl", Pbrt_yojson.make_string v.schema_url) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_metrics_data (v:metrics_data) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.resource_metrics |> List.map encode_json_resource_metrics in
+    ("resourceMetrics", `List l) :: !assoc 
+  );
+  `Assoc !assoc
+
+let rec encode_json_data_point_flags (v:data_point_flags) = 
+  match v with
+  | Data_point_flags_do_not_use -> `String "DATA_POINT_FLAGS_DO_NOT_USE"
+  | Data_point_flags_no_recorded_value_mask -> `String "DATA_POINT_FLAGS_NO_RECORDED_VALUE_MASK"
+
+[@@@ocaml.warning "-23-27-30-39"]
+
+(** {2 JSON Decoding} *)
+
+let rec decode_json_exemplar_value json =
+  let assoc = match json with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  let rec loop = function
+    | [] -> Pbrt_yojson.E.malformed_variant "exemplar_value"
+    | ("asDouble", json_value)::_ -> 
+      (As_double (Pbrt_yojson.float json_value "exemplar_value" "As_double") : exemplar_value)
+    | ("asInt", json_value)::_ -> 
+      (As_int (Pbrt_yojson.int64 json_value "exemplar_value" "As_int") : exemplar_value)
+    
+    | _ :: tl -> loop tl
+  in
+  loop assoc
+
+and decode_json_exemplar d =
+  let v = default_exemplar () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("filteredAttributes", `List l) -> begin
+      exemplar_set_filtered_attributes v @@ List.map (function
+        | json_value -> (Common.decode_json_key_value json_value)
+      ) l;
+    end
+    | ("timeUnixNano", json_value) -> 
+      exemplar_set_time_unix_nano v (Pbrt_yojson.int64 json_value "exemplar" "time_unix_nano")
+    | ("asDouble", json_value) -> 
+      exemplar_set_value v (As_double (Pbrt_yojson.float json_value "exemplar" "value"))
+    | ("asInt", json_value) -> 
+      exemplar_set_value v (As_int (Pbrt_yojson.int64 json_value "exemplar" "value"))
+    | ("spanId", json_value) -> 
+      exemplar_set_span_id v (Pbrt_yojson.bytes json_value "exemplar" "span_id")
+    | ("traceId", json_value) -> 
+      exemplar_set_trace_id v (Pbrt_yojson.bytes json_value "exemplar" "trace_id")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    filtered_attributes = v.filtered_attributes;
+    time_unix_nano = v.time_unix_nano;
+    value = v.value;
+    span_id = v.span_id;
+    trace_id = v.trace_id;
+  } : exemplar)
+
+let rec decode_json_number_data_point_value json =
+  let assoc = match json with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  let rec loop = function
+    | [] -> Pbrt_yojson.E.malformed_variant "number_data_point_value"
+    | ("asDouble", json_value)::_ -> 
+      (As_double (Pbrt_yojson.float json_value "number_data_point_value" "As_double") : number_data_point_value)
+    | ("asInt", json_value)::_ -> 
+      (As_int (Pbrt_yojson.int64 json_value "number_data_point_value" "As_int") : number_data_point_value)
+    
+    | _ :: tl -> loop tl
+  in
+  loop assoc
+
+and decode_json_number_data_point d =
+  let v = default_number_data_point () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("attributes", `List l) -> begin
+      number_data_point_set_attributes v @@ List.map (function
+        | json_value -> (Common.decode_json_key_value json_value)
+      ) l;
+    end
+    | ("startTimeUnixNano", json_value) -> 
+      number_data_point_set_start_time_unix_nano v (Pbrt_yojson.int64 json_value "number_data_point" "start_time_unix_nano")
+    | ("timeUnixNano", json_value) -> 
+      number_data_point_set_time_unix_nano v (Pbrt_yojson.int64 json_value "number_data_point" "time_unix_nano")
+    | ("asDouble", json_value) -> 
+      number_data_point_set_value v (As_double (Pbrt_yojson.float json_value "number_data_point" "value"))
+    | ("asInt", json_value) -> 
+      number_data_point_set_value v (As_int (Pbrt_yojson.int64 json_value "number_data_point" "value"))
+    | ("exemplars", `List l) -> begin
+      number_data_point_set_exemplars v @@ List.map (function
+        | json_value -> (decode_json_exemplar json_value)
+      ) l;
+    end
+    | ("flags", json_value) -> 
+      number_data_point_set_flags v (Pbrt_yojson.int32 json_value "number_data_point" "flags")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    attributes = v.attributes;
+    start_time_unix_nano = v.start_time_unix_nano;
+    time_unix_nano = v.time_unix_nano;
+    value = v.value;
+    exemplars = v.exemplars;
+    flags = v.flags;
+  } : number_data_point)
+
+let rec decode_json_gauge d =
+  let v = default_gauge () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("dataPoints", `List l) -> begin
+      gauge_set_data_points v @@ List.map (function
+        | json_value -> (decode_json_number_data_point json_value)
+      ) l;
+    end
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    data_points = v.data_points;
+  } : gauge)
+
+let rec decode_json_aggregation_temporality json =
+  match json with
+  | `String "AGGREGATION_TEMPORALITY_UNSPECIFIED" -> (Aggregation_temporality_unspecified : aggregation_temporality)
+  | `String "AGGREGATION_TEMPORALITY_DELTA" -> (Aggregation_temporality_delta : aggregation_temporality)
+  | `String "AGGREGATION_TEMPORALITY_CUMULATIVE" -> (Aggregation_temporality_cumulative : aggregation_temporality)
+  | _ -> Pbrt_yojson.E.malformed_variant "aggregation_temporality"
+
+let rec decode_json_sum d =
+  let v = default_sum () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("dataPoints", `List l) -> begin
+      sum_set_data_points v @@ List.map (function
+        | json_value -> (decode_json_number_data_point json_value)
+      ) l;
+    end
+    | ("aggregationTemporality", json_value) -> 
+      sum_set_aggregation_temporality v ((decode_json_aggregation_temporality json_value))
+    | ("isMonotonic", json_value) -> 
+      sum_set_is_monotonic v (Pbrt_yojson.bool json_value "sum" "is_monotonic")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    data_points = v.data_points;
+    aggregation_temporality = v.aggregation_temporality;
+    is_monotonic = v.is_monotonic;
+  } : sum)
+
+let rec decode_json_histogram_data_point d =
+  let v = default_histogram_data_point () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("attributes", `List l) -> begin
+      histogram_data_point_set_attributes v @@ List.map (function
+        | json_value -> (Common.decode_json_key_value json_value)
+      ) l;
+    end
+    | ("startTimeUnixNano", json_value) -> 
+      histogram_data_point_set_start_time_unix_nano v (Pbrt_yojson.int64 json_value "histogram_data_point" "start_time_unix_nano")
+    | ("timeUnixNano", json_value) -> 
+      histogram_data_point_set_time_unix_nano v (Pbrt_yojson.int64 json_value "histogram_data_point" "time_unix_nano")
+    | ("count", json_value) -> 
+      histogram_data_point_set_count v (Pbrt_yojson.int64 json_value "histogram_data_point" "count")
+    | ("sum", json_value) -> 
+      histogram_data_point_set_sum v (Pbrt_yojson.float json_value "histogram_data_point" "sum")
+    | ("bucketCounts", `List l) -> begin
+      histogram_data_point_set_bucket_counts v @@ List.map (function
+        | json_value -> Pbrt_yojson.int64 json_value "histogram_data_point" "bucket_counts"
+      ) l;
+    end
+    | ("explicitBounds", `List l) -> begin
+      histogram_data_point_set_explicit_bounds v @@ List.map (function
+        | json_value -> Pbrt_yojson.float json_value "histogram_data_point" "explicit_bounds"
+      ) l;
+    end
+    | ("exemplars", `List l) -> begin
+      histogram_data_point_set_exemplars v @@ List.map (function
+        | json_value -> (decode_json_exemplar json_value)
+      ) l;
+    end
+    | ("flags", json_value) -> 
+      histogram_data_point_set_flags v (Pbrt_yojson.int32 json_value "histogram_data_point" "flags")
+    | ("min", json_value) -> 
+      histogram_data_point_set_min v (Pbrt_yojson.float json_value "histogram_data_point" "min")
+    | ("max", json_value) -> 
+      histogram_data_point_set_max v (Pbrt_yojson.float json_value "histogram_data_point" "max")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    attributes = v.attributes;
+    start_time_unix_nano = v.start_time_unix_nano;
+    time_unix_nano = v.time_unix_nano;
+    count = v.count;
+    sum = v.sum;
+    bucket_counts = v.bucket_counts;
+    explicit_bounds = v.explicit_bounds;
+    exemplars = v.exemplars;
+    flags = v.flags;
+    min = v.min;
+    max = v.max;
+  } : histogram_data_point)
+
+let rec decode_json_histogram d =
+  let v = default_histogram () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("dataPoints", `List l) -> begin
+      histogram_set_data_points v @@ List.map (function
+        | json_value -> (decode_json_histogram_data_point json_value)
+      ) l;
+    end
+    | ("aggregationTemporality", json_value) -> 
+      histogram_set_aggregation_temporality v ((decode_json_aggregation_temporality json_value))
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    data_points = v.data_points;
+    aggregation_temporality = v.aggregation_temporality;
+  } : histogram)
+
+let rec decode_json_exponential_histogram_data_point_buckets d =
+  let v = default_exponential_histogram_data_point_buckets () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("offset", json_value) -> 
+      exponential_histogram_data_point_buckets_set_offset v (Pbrt_yojson.int32 json_value "exponential_histogram_data_point_buckets" "offset")
+    | ("bucketCounts", `List l) -> begin
+      exponential_histogram_data_point_buckets_set_bucket_counts v @@ List.map (function
+        | json_value -> Pbrt_yojson.int64 json_value "exponential_histogram_data_point_buckets" "bucket_counts"
+      ) l;
+    end
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    offset = v.offset;
+    bucket_counts = v.bucket_counts;
+  } : exponential_histogram_data_point_buckets)
+
+let rec decode_json_exponential_histogram_data_point d =
+  let v = default_exponential_histogram_data_point () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("attributes", `List l) -> begin
+      exponential_histogram_data_point_set_attributes v @@ List.map (function
+        | json_value -> (Common.decode_json_key_value json_value)
+      ) l;
+    end
+    | ("startTimeUnixNano", json_value) -> 
+      exponential_histogram_data_point_set_start_time_unix_nano v (Pbrt_yojson.int64 json_value "exponential_histogram_data_point" "start_time_unix_nano")
+    | ("timeUnixNano", json_value) -> 
+      exponential_histogram_data_point_set_time_unix_nano v (Pbrt_yojson.int64 json_value "exponential_histogram_data_point" "time_unix_nano")
+    | ("count", json_value) -> 
+      exponential_histogram_data_point_set_count v (Pbrt_yojson.int64 json_value "exponential_histogram_data_point" "count")
+    | ("sum", json_value) -> 
+      exponential_histogram_data_point_set_sum v (Pbrt_yojson.float json_value "exponential_histogram_data_point" "sum")
+    | ("scale", json_value) -> 
+      exponential_histogram_data_point_set_scale v (Pbrt_yojson.int32 json_value "exponential_histogram_data_point" "scale")
+    | ("zeroCount", json_value) -> 
+      exponential_histogram_data_point_set_zero_count v (Pbrt_yojson.int64 json_value "exponential_histogram_data_point" "zero_count")
+    | ("positive", json_value) -> 
+      exponential_histogram_data_point_set_positive v (decode_json_exponential_histogram_data_point_buckets json_value)
+    | ("negative", json_value) -> 
+      exponential_histogram_data_point_set_negative v (decode_json_exponential_histogram_data_point_buckets json_value)
+    | ("flags", json_value) -> 
+      exponential_histogram_data_point_set_flags v (Pbrt_yojson.int32 json_value "exponential_histogram_data_point" "flags")
+    | ("exemplars", `List l) -> begin
+      exponential_histogram_data_point_set_exemplars v @@ List.map (function
+        | json_value -> (decode_json_exemplar json_value)
+      ) l;
+    end
+    | ("min", json_value) -> 
+      exponential_histogram_data_point_set_min v (Pbrt_yojson.float json_value "exponential_histogram_data_point" "min")
+    | ("max", json_value) -> 
+      exponential_histogram_data_point_set_max v (Pbrt_yojson.float json_value "exponential_histogram_data_point" "max")
+    | ("zeroThreshold", json_value) -> 
+      exponential_histogram_data_point_set_zero_threshold v (Pbrt_yojson.float json_value "exponential_histogram_data_point" "zero_threshold")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    attributes = v.attributes;
+    start_time_unix_nano = v.start_time_unix_nano;
+    time_unix_nano = v.time_unix_nano;
+    count = v.count;
+    sum = v.sum;
+    scale = v.scale;
+    zero_count = v.zero_count;
+    positive = v.positive;
+    negative = v.negative;
+    flags = v.flags;
+    exemplars = v.exemplars;
+    min = v.min;
+    max = v.max;
+    zero_threshold = v.zero_threshold;
+  } : exponential_histogram_data_point)
+
+let rec decode_json_exponential_histogram d =
+  let v = default_exponential_histogram () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("dataPoints", `List l) -> begin
+      exponential_histogram_set_data_points v @@ List.map (function
+        | json_value -> (decode_json_exponential_histogram_data_point json_value)
+      ) l;
+    end
+    | ("aggregationTemporality", json_value) -> 
+      exponential_histogram_set_aggregation_temporality v ((decode_json_aggregation_temporality json_value))
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    data_points = v.data_points;
+    aggregation_temporality = v.aggregation_temporality;
+  } : exponential_histogram)
+
+let rec decode_json_summary_data_point_value_at_quantile d =
+  let v = default_summary_data_point_value_at_quantile () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("quantile", json_value) -> 
+      summary_data_point_value_at_quantile_set_quantile v (Pbrt_yojson.float json_value "summary_data_point_value_at_quantile" "quantile")
+    | ("value", json_value) -> 
+      summary_data_point_value_at_quantile_set_value v (Pbrt_yojson.float json_value "summary_data_point_value_at_quantile" "value")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    quantile = v.quantile;
+    value = v.value;
+  } : summary_data_point_value_at_quantile)
+
+let rec decode_json_summary_data_point d =
+  let v = default_summary_data_point () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("attributes", `List l) -> begin
+      summary_data_point_set_attributes v @@ List.map (function
+        | json_value -> (Common.decode_json_key_value json_value)
+      ) l;
+    end
+    | ("startTimeUnixNano", json_value) -> 
+      summary_data_point_set_start_time_unix_nano v (Pbrt_yojson.int64 json_value "summary_data_point" "start_time_unix_nano")
+    | ("timeUnixNano", json_value) -> 
+      summary_data_point_set_time_unix_nano v (Pbrt_yojson.int64 json_value "summary_data_point" "time_unix_nano")
+    | ("count", json_value) -> 
+      summary_data_point_set_count v (Pbrt_yojson.int64 json_value "summary_data_point" "count")
+    | ("sum", json_value) -> 
+      summary_data_point_set_sum v (Pbrt_yojson.float json_value "summary_data_point" "sum")
+    | ("quantileValues", `List l) -> begin
+      summary_data_point_set_quantile_values v @@ List.map (function
+        | json_value -> (decode_json_summary_data_point_value_at_quantile json_value)
+      ) l;
+    end
+    | ("flags", json_value) -> 
+      summary_data_point_set_flags v (Pbrt_yojson.int32 json_value "summary_data_point" "flags")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    attributes = v.attributes;
+    start_time_unix_nano = v.start_time_unix_nano;
+    time_unix_nano = v.time_unix_nano;
+    count = v.count;
+    sum = v.sum;
+    quantile_values = v.quantile_values;
+    flags = v.flags;
+  } : summary_data_point)
+
+let rec decode_json_summary d =
+  let v = default_summary () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("dataPoints", `List l) -> begin
+      summary_set_data_points v @@ List.map (function
+        | json_value -> (decode_json_summary_data_point json_value)
+      ) l;
+    end
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    data_points = v.data_points;
+  } : summary)
+
+let rec decode_json_metric_data json =
+  let assoc = match json with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  let rec loop = function
+    | [] -> Pbrt_yojson.E.malformed_variant "metric_data"
+    | ("gauge", json_value)::_ -> 
+      (Gauge ((decode_json_gauge json_value)) : metric_data)
+    | ("sum", json_value)::_ -> 
+      (Sum ((decode_json_sum json_value)) : metric_data)
+    | ("histogram", json_value)::_ -> 
+      (Histogram ((decode_json_histogram json_value)) : metric_data)
+    | ("exponentialHistogram", json_value)::_ -> 
+      (Exponential_histogram ((decode_json_exponential_histogram json_value)) : metric_data)
+    | ("summary", json_value)::_ -> 
+      (Summary ((decode_json_summary json_value)) : metric_data)
+    
+    | _ :: tl -> loop tl
+  in
+  loop assoc
+
+and decode_json_metric d =
+  let v = default_metric () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("name", json_value) -> 
+      metric_set_name v (Pbrt_yojson.string json_value "metric" "name")
+    | ("description", json_value) -> 
+      metric_set_description v (Pbrt_yojson.string json_value "metric" "description")
+    | ("unit", json_value) -> 
+      metric_set_unit_ v (Pbrt_yojson.string json_value "metric" "unit_")
+    | ("gauge", json_value) -> 
+      metric_set_data v (Gauge ((decode_json_gauge json_value)))
+    | ("sum", json_value) -> 
+      metric_set_data v (Sum ((decode_json_sum json_value)))
+    | ("histogram", json_value) -> 
+      metric_set_data v (Histogram ((decode_json_histogram json_value)))
+    | ("exponentialHistogram", json_value) -> 
+      metric_set_data v (Exponential_histogram ((decode_json_exponential_histogram json_value)))
+    | ("summary", json_value) -> 
+      metric_set_data v (Summary ((decode_json_summary json_value)))
+    | ("metadata", `List l) -> begin
+      metric_set_metadata v @@ List.map (function
+        | json_value -> (Common.decode_json_key_value json_value)
+      ) l;
+    end
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    name = v.name;
+    description = v.description;
+    unit_ = v.unit_;
+    data = v.data;
+    metadata = v.metadata;
+  } : metric)
+
+let rec decode_json_scope_metrics d =
+  let v = default_scope_metrics () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("scope", json_value) -> 
+      scope_metrics_set_scope v (Common.decode_json_instrumentation_scope json_value)
+    | ("metrics", `List l) -> begin
+      scope_metrics_set_metrics v @@ List.map (function
+        | json_value -> (decode_json_metric json_value)
+      ) l;
+    end
+    | ("schemaUrl", json_value) -> 
+      scope_metrics_set_schema_url v (Pbrt_yojson.string json_value "scope_metrics" "schema_url")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    scope = v.scope;
+    metrics = v.metrics;
+    schema_url = v.schema_url;
+  } : scope_metrics)
+
+let rec decode_json_resource_metrics d =
+  let v = default_resource_metrics () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("resource", json_value) -> 
+      resource_metrics_set_resource v (Resource.decode_json_resource json_value)
+    | ("scopeMetrics", `List l) -> begin
+      resource_metrics_set_scope_metrics v @@ List.map (function
+        | json_value -> (decode_json_scope_metrics json_value)
+      ) l;
+    end
+    | ("schemaUrl", json_value) -> 
+      resource_metrics_set_schema_url v (Pbrt_yojson.string json_value "resource_metrics" "schema_url")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    resource = v.resource;
+    scope_metrics = v.scope_metrics;
+    schema_url = v.schema_url;
+  } : resource_metrics)
+
+let rec decode_json_metrics_data d =
+  let v = default_metrics_data () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("resourceMetrics", `List l) -> begin
+      metrics_data_set_resource_metrics v @@ List.map (function
+        | json_value -> (decode_json_resource_metrics json_value)
+      ) l;
+    end
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    resource_metrics = v.resource_metrics;
+  } : metrics_data)
+
+let rec decode_json_data_point_flags json =
+  match json with
+  | `String "DATA_POINT_FLAGS_DO_NOT_USE" -> (Data_point_flags_do_not_use : data_point_flags)
+  | `String "DATA_POINT_FLAGS_NO_RECORDED_VALUE_MASK" -> (Data_point_flags_no_recorded_value_mask : data_point_flags)
+  | _ -> Pbrt_yojson.E.malformed_variant "data_point_flags"

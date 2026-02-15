@@ -36,6 +36,10 @@
    (and
     (>= 4.0)
     (< 5.0)))
+  (pbrt_yojson
+   (and
+    (>= 4.0)
+    (< 5.0)))
   (ambient-context
    (>= 0.2))
   (ocaml-lsp-server :with-dev-setup)

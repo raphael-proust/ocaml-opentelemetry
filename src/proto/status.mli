@@ -65,3 +65,15 @@ val encode_pb_status : status -> Pbrt.Encoder.t -> unit
 
 val decode_pb_status : Pbrt.Decoder.t -> status
 (** [decode_pb_status decoder] decodes a [status] binary value from [decoder] *)
+
+
+(** {2 Protobuf YoJson Encoding} *)
+
+val encode_json_status : status -> Yojson.Basic.t
+(** [encode_json_status v encoder] encodes [v] to to json *)
+
+
+(** {2 JSON Decoding} *)
+
+val decode_json_status : Yojson.Basic.t -> status
+(** [decode_json_status decoder] decodes a [status] value from [decoder] *)

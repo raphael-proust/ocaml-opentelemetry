@@ -67,33 +67,44 @@ val is_metrics : t -> bool
 
 val is_logs : t -> bool
 
-(** Encode signals to protobuf encoded strings, ready to be sent over the wire
-*)
+type protocol = Exporter_config.protocol =
+  | Http_protobuf
+  | Http_json
+
+(** Encode signals to protobuf or JSON encoded strings, ready to be sent over
+    the wire *)
 module Encode : sig
   val logs :
     ?encoder:Pbrt.Encoder.t ->
+    ?protocol:protocol ->
     Opentelemetry_proto.Logs.resource_logs list ->
     string
-  (** [logs ls] is a protobuf encoded string of the logs [ls]
+  (** [logs ls] is an encoded string of the logs [ls].
 
-      @param encoder provide an encoder state to reuse *)
+      @param encoder provide an encoder state to reuse (protobuf only)
+      @param protocol encoding protocol to use (default: Http_protobuf) *)
 
   val metrics :
     ?encoder:Pbrt.Encoder.t ->
+    ?protocol:protocol ->
     Opentelemetry_proto.Metrics.resource_metrics list ->
     string
-  (** [metrics ms] is a protobuf encoded string of the metrics [ms]
-      @param encoder provide an encoder state to reuse *)
+  (** [metrics ms] is an encoded string of the metrics [ms].
+
+      @param encoder provide an encoder state to reuse (protobuf only)
+      @param protocol encoding protocol to use (default: Http_protobuf) *)
 
   val traces :
     ?encoder:Pbrt.Encoder.t ->
+    ?protocol:protocol ->
     Opentelemetry_proto.Trace.resource_spans list ->
     string
-  (** [traces ts] is a protobuf encoded string of the traces [ts]
+  (** [traces ts] is an encoded string of the traces [ts].
 
-      @param encoder provide an encoder state to reuse *)
+      @param encoder provide an encoder state to reuse (protobuf only)
+      @param protocol encoding protocol to use (default: Http_protobuf) *)
 
-  val any : ?encoder:Pbrt.Encoder.t -> t -> string
+  val any : ?encoder:Pbrt.Encoder.t -> ?protocol:protocol -> t -> string
 end
 
 (** Decode signals from protobuf encoded strings, received over the wire *)

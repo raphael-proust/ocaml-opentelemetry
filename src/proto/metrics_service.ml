@@ -200,3 +200,91 @@ let rec decode_pb_export_metrics_service_response d =
     | Some (_, payload_kind) -> Pbrt.Decoder.skip d payload_kind
   done;
   (v : export_metrics_service_response)
+
+[@@@ocaml.warning "-23-27-30-39"]
+
+(** {2 Protobuf YoJson Encoding} *)
+
+let rec encode_json_export_metrics_service_request (v:export_metrics_service_request) = 
+  let assoc = ref [] in
+  assoc := (
+    let l = v.resource_metrics |> List.map Metrics.encode_json_resource_metrics in
+    ("resourceMetrics", `List l) :: !assoc 
+  );
+  `Assoc !assoc
+
+let rec encode_json_export_metrics_partial_success (v:export_metrics_partial_success) = 
+  let assoc = ref [] in
+  if export_metrics_partial_success_has_rejected_data_points v then (
+    assoc := ("rejectedDataPoints", Pbrt_yojson.make_string (Int64.to_string v.rejected_data_points)) :: !assoc;
+  );
+  if export_metrics_partial_success_has_error_message v then (
+    assoc := ("errorMessage", Pbrt_yojson.make_string v.error_message) :: !assoc;
+  );
+  `Assoc !assoc
+
+let rec encode_json_export_metrics_service_response (v:export_metrics_service_response) = 
+  let assoc = ref [] in
+  assoc := (match v.partial_success with
+    | None -> !assoc
+    | Some v -> ("partialSuccess", encode_json_export_metrics_partial_success v) :: !assoc);
+  `Assoc !assoc
+
+[@@@ocaml.warning "-23-27-30-39"]
+
+(** {2 JSON Decoding} *)
+
+let rec decode_json_export_metrics_service_request d =
+  let v = default_export_metrics_service_request () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("resourceMetrics", `List l) -> begin
+      export_metrics_service_request_set_resource_metrics v @@ List.map (function
+        | json_value -> (Metrics.decode_json_resource_metrics json_value)
+      ) l;
+    end
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    resource_metrics = v.resource_metrics;
+  } : export_metrics_service_request)
+
+let rec decode_json_export_metrics_partial_success d =
+  let v = default_export_metrics_partial_success () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("rejectedDataPoints", json_value) -> 
+      export_metrics_partial_success_set_rejected_data_points v (Pbrt_yojson.int64 json_value "export_metrics_partial_success" "rejected_data_points")
+    | ("errorMessage", json_value) -> 
+      export_metrics_partial_success_set_error_message v (Pbrt_yojson.string json_value "export_metrics_partial_success" "error_message")
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    _presence = v._presence;
+    rejected_data_points = v.rejected_data_points;
+    error_message = v.error_message;
+  } : export_metrics_partial_success)
+
+let rec decode_json_export_metrics_service_response d =
+  let v = default_export_metrics_service_response () in
+  let assoc = match d with
+    | `Assoc assoc -> assoc
+    | _ -> assert(false)
+  in
+  List.iter (function 
+    | ("partialSuccess", json_value) -> 
+      export_metrics_service_response_set_partial_success v (decode_json_export_metrics_partial_success json_value)
+    
+    | (_, _) -> () (*Unknown fields are ignored*)
+  ) assoc;
+  ({
+    partial_success = v.partial_success;
+  } : export_metrics_service_response)
