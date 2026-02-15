@@ -8,10 +8,6 @@ module OTELC = Opentelemetry_client
 module OTEL = Opentelemetry
 open Common_
 
-let get_headers = Config.Env.get_headers
-
-let set_headers = Config.Env.set_headers
-
 let n_bytes_sent : int Atomic.t = Atomic.make 0
 
 type error = OTELC.Export_error.t
@@ -30,12 +26,13 @@ module Httpc : OTELC.Generic_http_consumer.HTTPC with module IO = IO = struct
 
   let cleanup = Ezcurl.delete
 
-  let send (self : t) ~url ~decode (bod : string) : ('a, error) result =
+  let send (self : t) ~url ~headers:user_headers ~decode (bod : string) :
+      ('a, error) result =
     let r =
       let headers =
         ("Content-Type", "application/x-protobuf")
         :: ("Accept", "application/x-protobuf")
-        :: Config.Env.get_headers ()
+        :: user_headers
       in
       Ezcurl.post ~client:self ~headers ~params:[] ~url ~content:(`String bod)
         ()
@@ -108,7 +105,7 @@ let shutdown_and_wait ?(after_shutdown = ignore) (self : OTEL.Exporter.t) : unit
   after_shutdown self;
   ()
 
-let setup_ ?(config : Config.t = Config.make ()) () : OTEL.Exporter.t =
+let setup_ ~config () : OTEL.Exporter.t =
   let exporter = create_exporter ~config () in
   OTEL.Main_exporter.set exporter;
 
@@ -134,12 +131,14 @@ let remove_exporter () : unit =
 
 let remove_backend = remove_exporter
 
-let setup ?config ?(enable = true) () =
-  if enable then ignore (setup_ ?config () : OTEL.Exporter.t)
+let setup ?(config : Config.t = Config.make ()) ?(enable = true) () =
+  if enable && not config.common.sdk_disabled then
+    ignore (setup_ ~config () : OTEL.Exporter.t)
 
-let with_setup ?after_shutdown ?config ?(enable = true) () f =
-  if enable then (
-    let exp = setup_ ?config () in
+let with_setup ?after_shutdown ?(config : Config.t = Config.make ())
+    ?(enable = true) () f =
+  if enable && not config.common.sdk_disabled then (
+    let exp = setup_ ~config () in
     Fun.protect f ~finally:(fun () -> shutdown_and_wait ?after_shutdown exp)
   ) else
     f ()

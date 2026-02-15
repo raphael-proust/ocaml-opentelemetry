@@ -3,11 +3,6 @@
    https://opentelemetry.io/docs/reference/specification/protocol/exporter/
    *)
 
-val get_headers : unit -> (string * string) list
-
-val set_headers : (string * string) list -> unit
-(** Set http headers that are sent on every http query to the collector. *)
-
 module Config = Config
 
 val create_consumer :

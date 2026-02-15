@@ -9,10 +9,6 @@ open Opentelemetry_client
 
 let spf = Printf.sprintf
 
-let set_headers = Config.Env.set_headers
-
-let get_headers = Config.Env.get_headers
-
 module Make (CTX : sig
   val sw : Eio.Switch.t
 
@@ -91,13 +87,13 @@ struct
     let cleanup = ignore
 
     (* send the content to the remote endpoint/path *)
-    let send (client : t) ~url ~decode (body : string) :
+    let send (client : t) ~url ~headers:user_headers ~decode (body : string) :
         ('a, Export_error.t) result =
       Eio.Switch.run @@ fun sw ->
       let uri = Uri.of_string url in
 
       let open Cohttp in
-      let headers = Header.(add_list (init ()) (Config.Env.get_headers ())) in
+      let headers = Header.(add_list (init ()) user_headers) in
       let headers =
         Header.(add headers "Content-Type" "application/x-protobuf")
       in
@@ -179,13 +175,13 @@ let create_exporter ?(config = Config.make ()) ~sw ~env () =
 
 let create_backend = create_exporter
 
-let setup_ ~sw ?config env : unit =
+let setup_ ~sw ~config env : unit =
   Opentelemetry_ambient_context.set_current_storage Ambient_context_eio.storage;
-  let exp = create_exporter ?config ~sw ~env () in
+  let exp = create_exporter ~config ~sw ~env () in
   Main_exporter.set exp
 
-let setup ?config ?(enable = true) ~sw env =
-  if enable then setup_ ~sw ?config env
+let setup ?(config = Config.make ()) ?(enable = true) ~sw env =
+  if enable && not config.sdk_disabled then setup_ ~sw ~config env
 
 let remove_exporter () =
   let p, waker = Eio.Promise.create () in
@@ -194,10 +190,10 @@ let remove_exporter () =
 
 let remove_backend = remove_exporter
 
-let with_setup ?config ?(enable = true) env f =
-  if enable then (
+let with_setup ?(config = Config.make ()) ?(enable = true) env f =
+  if enable && not config.sdk_disabled then (
     Eio.Switch.run @@ fun sw ->
-    setup_ ~sw ?config env;
+    setup_ ~sw ~config env;
     Fun.protect f ~finally:remove_exporter
   ) else
     f ()

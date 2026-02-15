@@ -8,10 +8,6 @@ open Opentelemetry
 open Opentelemetry_client
 open Common_
 
-let set_headers = Config.Env.set_headers
-
-let get_headers = Config.Env.get_headers
-
 type error = Export_error.t
 
 open struct
@@ -30,12 +26,13 @@ module Httpc : Generic_http_consumer.HTTPC with module IO = IO = struct
   let cleanup self = Ezcurl_lwt.delete self
 
   (** send the content to the remote endpoint/path *)
-  let send (self : t) ~url ~decode (bod : string) : ('a, error) result Lwt.t =
+  let send (self : t) ~url ~headers:user_headers ~decode (bod : string) :
+      ('a, error) result Lwt.t =
     let* r =
       let headers =
         ("Content-Type", "application/x-protobuf")
         :: ("Accept", "application/x-protobuf")
-        :: Config.Env.get_headers ()
+        :: user_headers
       in
       Ezcurl_lwt.post ~client:self ~headers ~params:[] ~url
         ~content:(`String bod) ()
@@ -90,14 +87,15 @@ let create_exporter ?(config = Config.make ()) () =
 
 let create_backend = create_exporter
 
-let setup_ ?config () : Exporter.t =
+let setup_ ~config () : Exporter.t =
   Opentelemetry_client_lwt.Util_ambient_context.setup_ambient_context ();
-  let exp = create_exporter ?config () in
+  let exp = create_exporter ~config () in
   Main_exporter.set exp;
   exp
 
-let setup ?config ?(enable = true) () =
-  if enable then ignore (setup_ ?config () : Exporter.t)
+let setup ?(config = Config.make ()) ?(enable = true) () =
+  if enable && not config.sdk_disabled then
+    ignore (setup_ ~config () : Exporter.t)
 
 let remove_exporter () : unit Lwt.t =
   let done_fut, done_u = Lwt.wait () in
@@ -108,7 +106,7 @@ let remove_backend = remove_exporter
 
 let with_setup ?(after_shutdown = ignore) ?(config = Config.make ())
     ?(enable = true) () f : _ Lwt.t =
-  if enable then
+  if enable && not config.sdk_disabled then
     let open Lwt.Syntax in
     let exp = setup_ ~config () in
 

@@ -19,6 +19,7 @@ module type HTTPC = sig
   val send :
     t ->
     url:string ->
+    headers:(string * string) list ->
     decode:[ `Dec of Pbrt.Decoder.t -> 'a | `Ret of 'a ] ->
     string ->
     ('a, error) result IO.t
@@ -62,14 +63,22 @@ end = struct
     let send (self : t) (sigs : OTEL.Any_signal_l.t) : (unit, error) result IO.t
         =
       let res = Resource_signal.of_signal_l sigs in
-      let url =
+      let url, signal_headers =
         match res with
-        | Logs _ -> self.config.url_logs
-        | Traces _ -> self.config.url_traces
-        | Metrics _ -> self.config.url_metrics
+        | Logs _ -> self.config.url_logs, self.config.headers_logs
+        | Traces _ -> self.config.url_traces, self.config.headers_traces
+        | Metrics _ -> self.config.url_metrics, self.config.headers_metrics
       in
+      (* Merge general headers with signal-specific ones (signal-specific takes precedence) *)
+      let signal_keys = List.map fst signal_headers in
+      let filtered_general =
+        List.filter
+          (fun (k, _) -> not (List.mem k signal_keys))
+          self.config.headers
+      in
+      let headers = List.rev_append signal_headers filtered_general in
       let data = Resource_signal.Encode.any ~encoder:self.encoder res in
-      Httpc.send self.http ~url ~decode:(`Ret ()) data
+      Httpc.send self.http ~url ~headers ~decode:(`Ret ()) data
   end
 
   module C = Generic_consumer.Make (IO) (Notifier) (Sender)

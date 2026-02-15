@@ -8,10 +8,6 @@ open Opentelemetry_client
 open Opentelemetry
 open Common_
 
-let set_headers = Config.Env.set_headers
-
-let get_headers = Config.Env.get_headers
-
 type error = Export_error.t
 
 open struct
@@ -31,11 +27,12 @@ module Httpc : Generic_http_consumer.HTTPC with module IO = IO = struct
   let cleanup _self = ()
 
   (* send the content to the remote endpoint/path *)
-  let send (_self : t) ~url ~decode (bod : string) : ('a, error) result Lwt.t =
+  let send (_self : t) ~url ~headers:user_headers ~decode (bod : string) :
+      ('a, error) result Lwt.t =
     let uri = Uri.of_string url in
 
     let open Cohttp in
-    let headers = Header.(add_list (init ()) (Config.Env.get_headers ())) in
+    let headers = Header.(add_list (init ()) user_headers) in
     let headers =
       Header.(
         add_list headers
@@ -119,13 +116,14 @@ let create_exporter ?(config = Config.make ()) () =
 
 let create_backend = create_exporter
 
-let setup_ ?config () : unit =
+let setup_ ~config () : unit =
   Opentelemetry_client_lwt.Util_ambient_context.setup_ambient_context ();
-  let exp = create_exporter ?config () in
+  let exp = create_exporter ~config () in
   Main_exporter.set exp;
   ()
 
-let setup ?config ?(enable = true) () = if enable then setup_ ?config ()
+let setup ?(config = Config.make ()) ?(enable = true) () =
+  if enable && not config.sdk_disabled then setup_ ~config ()
 
 let remove_exporter () : unit Lwt.t =
   let done_fut, done_u = Lwt.wait () in
@@ -140,7 +138,7 @@ let remove_exporter () : unit Lwt.t =
 let remove_backend = remove_exporter
 
 let with_setup ?(config = Config.make ()) ?(enable = true) () f : _ Lwt.t =
-  if enable then (
+  if enable && not config.sdk_disabled then (
     setup_ ~config ();
 
     Lwt.finalize f remove_exporter
