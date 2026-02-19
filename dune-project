@@ -188,6 +188,8 @@
    (= :version))
   (opentelemetry-client
    (= :version))
+  (opentelemetry-lwt
+   (= :version))
   ambient-context-lwt
   (odoc :with-doc)
   (lwt
