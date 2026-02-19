@@ -1,6 +1,8 @@
 open Common_
 
 module Extensions = struct
+  type Otrace.span += Span_otel of OTEL.Span.t
+
   type Otrace.extension_event +=
     | Ev_link_span of Otrace.span * OTEL.Span_ctx.t
     | Ev_record_exn of {
@@ -18,10 +20,6 @@ module Extensions = struct
 end
 
 open Extensions
-
-open struct
-  type Otrace.span += Span_otel of OTEL.Span.t
-end
 
 open struct
   type state = {

@@ -21,6 +21,9 @@ module Otrace := Trace_core
 
 (** The extension events for {!Trace_core}. *)
 module Extensions : sig
+  type Otrace.span +=
+    | Span_otel of OTEL.Span.t  (** The type of span used for OTEL *)
+
   type Otrace.extension_event +=
     | Ev_link_span of Otrace.span * OTEL.Span_ctx.t
           (** Link the given span to the given context. The context isn't the
