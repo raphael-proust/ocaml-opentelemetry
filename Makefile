@@ -26,6 +26,9 @@ odig-doc:
 format:
 	@dune build @fmt --auto-promote
 
+format-check:
+	@dune build $(DUNE_OPTS) @fmt --display=quiet
+
 WATCH ?= @all
 watch:
 	@dune build $(WATCH) -w $(OPTS)
