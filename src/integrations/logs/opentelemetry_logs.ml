@@ -34,7 +34,7 @@ let emit_telemetry do_emit = Logs.Tag.(empty |> add emit_telemetry_tag do_emit)
 (*****************************************************************************)
 
 (* Log a message to otel with some attrs *)
-let log ?(logger = OTEL.Logger.dynamic_main) ?attrs
+let log ?(logger = OTEL.Logger.default) ?attrs
     ?(scope = OTEL.Ambient_span.get ()) ~level msg =
   let log_level = Logs.level_to_string (Some level) in
   let span_id = Option.map OTEL.Span.id scope in

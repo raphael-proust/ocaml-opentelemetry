@@ -30,16 +30,21 @@ let (emit_main [@deprecated "use an explicit Logger.t"]) =
   | None -> ()
   | Some exp -> Exporter.send_logs exp logs
 
-(** An emitter that uses the current {!Main_exporter}'s logger *)
-let dynamic_main : t =
-  of_exporter Main_exporter.dynamic_forward_to_main_exporter
+open struct
+  (* internal default, keeps the default params below working without deprecation alerts *)
+  let dynamic_main_ : t =
+    of_exporter Main_exporter.dynamic_forward_to_main_exporter
+end
+
+(** A logger that uses the current {!Main_exporter}'s logger *)
+let default = dynamic_main_
 
 (** {2 Logging helpers} *)
 
 open Log_record
 
 (** Create log record and emit it on [logger] *)
-let log ?(logger = dynamic_main) ?attrs ?trace_id ?span_id
+let log ?(logger = dynamic_main_) ?attrs ?trace_id ?span_id
     ?(severity : severity option) (msg : string) : unit =
   if enabled logger then (
     let now = Clock.now logger.clock in
@@ -55,7 +60,7 @@ let log ?(logger = dynamic_main) ?attrs ?trace_id ?span_id
     Example usage:
     [logf ~severity:Severity_number_warn (fun k->k"oh no!! %s it's bad: %b"
      "help" true)] *)
-let logf ?(logger = dynamic_main) ?attrs ?trace_id ?span_id ?severity msgf :
+let logf ?(logger = dynamic_main_) ?attrs ?trace_id ?span_id ?severity msgf :
     unit =
   if enabled logger then
     msgf (fun fmt ->

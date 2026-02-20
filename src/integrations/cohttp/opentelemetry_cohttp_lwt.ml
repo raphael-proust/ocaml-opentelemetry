@@ -117,8 +117,8 @@ end = struct
     in
     { req with headers }
 
-  let trace ?(tracer = Otel.Tracer.dynamic_main) ?(attrs = []) callback conn req
-      body =
+  let trace ?(tracer = Otel.Tracer.default) ?(attrs = []) callback conn req body
+      =
     let parent = get_trace_context ~from:`External req in
     Otel_lwt.Tracer.with_ ~tracer "request" ~kind:Span_kind_server
       ?trace_id:(Option.map Otel.Span.trace_id parent)
@@ -131,7 +131,7 @@ end = struct
         Otel.Span.add_attrs span (attrs_of_response res);
         Lwt.return (res, body))
 
-  let with_ ?(tracer = Otel.Tracer.dynamic_main) ?trace_state ?attrs
+  let with_ ?(tracer = Otel.Tracer.default) ?trace_state ?attrs
       ?(kind = Otel.Span.Span_kind_internal) ?links name req
       (f : Request.t -> 'a Lwt.t) =
     let span = get_trace_context ~from:`Internal req in
@@ -142,7 +142,7 @@ end = struct
         f req)
 end
 
-let client ?(tracer = Otel.Tracer.dynamic_main) ?(span : Otel.Span.t option)
+let client ?(tracer = Otel.Tracer.default) ?(span : Otel.Span.t option)
     (module C : Cohttp_lwt.S.Client) =
   let module Traced = struct
     open Lwt.Syntax

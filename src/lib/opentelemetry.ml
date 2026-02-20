@@ -22,8 +22,38 @@ module Timestamp_ns = Timestamp_ns
 (** {2 Export signals to some external collector.} *)
 
 module Emitter = Opentelemetry_emitter.Emitter
-module Exporter = Exporter
-module Main_exporter = Main_exporter
+
+module Exporter = struct
+  include Exporter
+
+  (** Get a tracer from this exporter.
+      @since NEXT_RELEASE *)
+  let get_tracer (self : t) : Tracer.t = Tracer.of_exporter self
+
+  (** Get a meter from this exporter.
+      @since NEXT_RELEASE *)
+  let get_meter (self : t) : Meter.t = Meter.of_exporter self
+
+  (** Get a logger from this exporter.
+      @since NEXT_RELEASE *)
+  let get_logger (self : t) : Logger.t = Logger.of_exporter self
+end
+
+module Main_exporter = struct
+  include Main_exporter
+
+  (** Get a tracer forwarding to the current main exporter.
+      @since NEXT_RELEASE *)
+  let get_tracer () : Tracer.t = Tracer.default
+
+  (** Get a meter forwarding to the current main exporter.
+      @since NEXT_RELEASE *)
+  let get_meter () : Meter.t = Meter.default
+
+  (** Get a logger forwarding to the current main exporter.
+      @since NEXT_RELEASE *)
+  let get_logger () : Logger.t = Logger.default
+end
 
 module Collector = struct
   include Exporter
@@ -74,8 +104,8 @@ module Trace = Tracer [@@deprecated "use Tracer instead"]
 (** {2 Metrics} *)
 
 module Metrics = Metrics
-module Metrics_callbacks = Metrics_callbacks
-module Metrics_emitter = Metrics_emitter
+module Instrument = Instrument
+module Meter = Meter
 
 (** {2 Logs} *)
 

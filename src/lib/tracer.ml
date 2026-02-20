@@ -28,9 +28,13 @@ let[@inline] enabled (self : t) = Emitter.enabled self.emit
 let of_exporter (exp : Exporter.t) : t =
   { emit = exp.emit_spans; clock = exp.clock }
 
-(** A tracer that uses the current {!Main_exporter} *)
-let dynamic_main : t =
-  Main_exporter.dynamic_forward_to_main_exporter |> of_exporter
+open struct
+  (* internal default, keeps the default param below working without deprecation alerts *)
+  let dynamic_main_ : t =
+    Main_exporter.dynamic_forward_to_main_exporter |> of_exporter
+end
+
+let default = dynamic_main_
 
 let (add_event [@deprecated "use Span.add_event"]) = Span.add_event'
 
@@ -106,8 +110,8 @@ let with_thunk_and_finally (self : t) ?(force_new_trace_id = false) ?trace_state
       if true (default false), the span will not use a ambient scope, the
       [~scope] argument, nor [~trace_id], but will instead always create fresh
       identifiers for this span *)
-let with_ ?(tracer = dynamic_main) ?force_new_trace_id ?trace_state ?attrs ?kind
-    ?trace_id ?parent ?links name (cb : Span.t -> 'a) : 'a =
+let with_ ?(tracer = dynamic_main_) ?force_new_trace_id ?trace_state ?attrs
+    ?kind ?trace_id ?parent ?links name (cb : Span.t -> 'a) : 'a =
   let thunk, finally =
     with_thunk_and_finally tracer ?force_new_trace_id ?trace_state ?attrs ?kind
       ?trace_id ?parent ?links name cb

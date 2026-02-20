@@ -84,15 +84,14 @@ let run_job job_id : unit Lwt.t =
 let run () : unit Lwt.t =
   T.Gc_metrics.setup_on_main_exporter ();
 
-  T.Metrics_callbacks.(
-    with_set_added_to_main_exporter (fun set ->
-        add_metrics_cb set (fun () ->
-            let now = T.Clock.now_main () in
-            T.Metrics.
-              [
-                sum ~name:"num-sleep" ~is_monotonic:true
-                  [ int ~now (Atomic.get num_sleep) ];
-              ])));
+  T.Meter.add_cb (fun ~clock () ->
+      let now = T.Clock.now clock in
+      T.Metrics.
+        [
+          sum ~name:"num-sleep" ~is_monotonic:true
+            [ int ~now (Atomic.get num_sleep) ];
+        ]);
+  T.Meter.add_to_main_exporter T.Meter.default;
 
   let n_jobs = max 1 !n_jobs in
   (* Printf.printf "run %d jobs\n%!" n_jobs; *)

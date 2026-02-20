@@ -71,17 +71,15 @@ let run_job clock _job_id iterations : unit =
 let run env proc iterations () : unit =
   OT.Gc_metrics.setup_on_main_exporter ();
 
-  OT.Metrics_callbacks.(
-    with_set_added_to_main_exporter
-      ~min_interval:Mtime.Span.(10 * ms)
-      (fun set ->
-        add_metrics_cb set (fun () ->
-            let now = OT.Clock.now_main () in
-            OT.Metrics.
-              [
-                sum ~name:"num-sleep" ~is_monotonic:true
-                  [ int ~now (Atomic.get num_sleep) ];
-              ])));
+  OT.Meter.add_cb (fun ~clock () ->
+      let now = OT.Clock.now clock in
+      OT.Metrics.
+        [
+          sum ~name:"num-sleep" ~is_monotonic:true
+            [ int ~now (Atomic.get num_sleep) ];
+        ]);
+  OT.Meter.add_to_main_exporter ~min_interval:Mtime.Span.(10 * ms)
+    OT.Meter.default;
 
   let n_jobs = max 1 !n_jobs in
   Printf.printf "run %d jobs in proc %d\n%!" n_jobs proc;

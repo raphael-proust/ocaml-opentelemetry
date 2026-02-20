@@ -1,0 +1,100 @@
+{ name = "test.latency";
+  description = "test histogram";
+  unit_ = "" (* absent *);
+  data =
+    Some(
+      Histogram(
+        { data_points =
+            [{ attributes = [];
+               start_time_unix_nano = 0 (* absent *);
+               time_unix_nano = 0;
+               count = 4;
+               sum = 15.;
+               bucket_counts = [1;1;1;1];
+               explicit_bounds = [1.;2.;5.];
+               exemplars = [];
+               flags = 0 (* absent *);
+               min = 0. (* absent *);
+               max = 0. (* absent *);
+             }
+             ];
+          aggregation_temporality =
+            Aggregation_temporality_unspecified (* absent *);
+        }));
+  metadata = [];
+}
+{ name = "test.size";
+  description = "" (* absent *);
+  unit_ = "" (* absent *);
+  data =
+    Some(
+      Histogram(
+        { data_points =
+            [{ attributes = [];
+               start_time_unix_nano = 0 (* absent *);
+               time_unix_nano = 0;
+               count = 4;
+               sum = 2.6;
+               bucket_counts = [3;1;0];
+               explicit_bounds = [1.;5.];
+               exemplars = [];
+               flags = 0 (* absent *);
+               min = 0. (* absent *);
+               max = 0. (* absent *);
+             }
+             ];
+          aggregation_temporality =
+            Aggregation_temporality_unspecified (* absent *);
+        }));
+  metadata = [];
+}
+{ name = "test.empty";
+  description = "" (* absent *);
+  unit_ = "" (* absent *);
+  data =
+    Some(
+      Histogram(
+        { data_points =
+            [{ attributes = [];
+               start_time_unix_nano = 0 (* absent *);
+               time_unix_nano = 0;
+               count = 0;
+               sum = 0.;
+               bucket_counts = [0;0;0;0];
+               explicit_bounds = [1.;2.;5.];
+               exemplars = [];
+               flags = 0 (* absent *);
+               min = 0. (* absent *);
+               max = 0. (* absent *);
+             }
+             ];
+          aggregation_temporality =
+            Aggregation_temporality_unspecified (* absent *);
+        }));
+  metadata = [];
+}
+{ name = "test.boundary";
+  description = "" (* absent *);
+  unit_ = "" (* absent *);
+  data =
+    Some(
+      Histogram(
+        { data_points =
+            [{ attributes = [];
+               start_time_unix_nano = 0 (* absent *);
+               time_unix_nano = 0;
+               count = 3;
+               sum = 8.;
+               bucket_counts = [1;1;1;0];
+               explicit_bounds = [1.;2.;5.];
+               exemplars = [];
+               flags = 0 (* absent *);
+               min = 0. (* absent *);
+               max = 0. (* absent *);
+             }
+             ];
+          aggregation_temporality =
+            Aggregation_temporality_unspecified (* absent *);
+        }));
+  metadata = [];
+}

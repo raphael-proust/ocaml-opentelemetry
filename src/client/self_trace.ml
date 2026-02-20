@@ -2,7 +2,7 @@ open Common_
 
 let enabled = Atomic.make false
 
-let tracer = Atomic.make OTEL.Tracer.dynamic_main
+let tracer = Atomic.make OTEL.Tracer.default
 
 let[@inline] add_event (scope : OTEL.Span.t) ev = OTEL.Span.add_event scope ev
 
