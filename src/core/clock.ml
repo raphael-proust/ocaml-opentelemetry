@@ -21,6 +21,9 @@ end
 (** Clock that uses ptime. *)
 let ptime_clock : t = { now = now_ptime_ }
 
+(** Same as [now ptime_clock] *)
+let now_ptime = now_ptime_
+
 (** Singleton clock *)
 module Main = struct
   open struct
