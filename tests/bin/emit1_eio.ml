@@ -78,7 +78,8 @@ let run env proc iterations () : unit =
           sum ~name:"num-sleep" ~is_monotonic:true
             [ int ~now (Atomic.get num_sleep) ];
         ]);
-  OT.Meter.add_to_main_exporter ~min_interval:Mtime.Span.(10 * ms)
+  OT.Meter.add_to_main_exporter
+    ~min_interval:Mtime.Span.(10 * ms)
     OT.Meter.default;
 
   let n_jobs = max 1 !n_jobs in
