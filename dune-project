@@ -24,7 +24,7 @@
 
 (package
  (name opentelemetry)
- (synopsis "Instrumentation for https://opentelemetry.io")
+ (synopsis "Core library for instrumentation and serialization for https://opentelemetry.io")
  (depends
   (ocaml
    (>= "4.08"))
