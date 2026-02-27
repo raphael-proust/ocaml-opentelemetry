@@ -1,19 +1,19 @@
 open Common_
 
 module Extensions = struct
-  type Otrace.span += Span_otel of OTEL.Span.t
+  type Trace.span += Span_otel of OTEL.Span.t
 
-  type Otrace.extension_event +=
-    | Ev_link_span of Otrace.span * OTEL.Span_ctx.t
+  type Trace.extension_event +=
+    | Ev_link_span of Trace.span * OTEL.Span_ctx.t
     | Ev_record_exn of {
-        sp: Otrace.span;
+        sp: Trace.span;
         exn: exn;
         bt: Printexc.raw_backtrace;
       }
-    | Ev_set_span_kind of Otrace.span * OTEL.Span_kind.t
-    | Ev_set_span_status of Otrace.span * OTEL.Span_status.t
+    | Ev_set_span_kind of Trace.span * OTEL.Span_kind.t
+    | Ev_set_span_status of Trace.span * OTEL.Span_status.t
 
-  type Otrace.metric +=
+  type Trace.metric +=
     | Metric_hist of OTEL.Metrics.histogram_data_point
     | Metric_sum_int of int
     | Metric_sum_float of float
@@ -28,7 +28,7 @@ open struct
   }
 
   let create_state ~(exporter : OTEL.Exporter.t) () : state =
-    let clock = exporter.clock in
+    let clock = OTEL.Clock.ptime_clock in
     { clock; exporter }
 
   (* sanity check: otrace meta-map must be the same as hmap *)
@@ -39,12 +39,11 @@ open struct
     OTEL.Span_ctx.k_ambient
 
   let enter_span (self : state) ~__FUNCTION__ ~__FILE__ ~__LINE__ ~level:_
-      ~params:_ ~(data : (_ * Otrace.user_data) list) ~parent name : Otrace.span
-      =
+      ~params:_ ~(data : (_ * Trace.user_data) list) ~parent name : Trace.span =
     let start_time = OTEL.Clock.now self.clock in
     let trace_id, parent_id =
       match parent with
-      | Otrace.P_some (Span_otel sp) ->
+      | Trace.P_some (Span_otel sp) ->
         OTEL.Span.trace_id sp, Some (OTEL.Span.id sp)
       | _ ->
         (match Ambient_context.get k_span_ctx with
@@ -100,10 +99,10 @@ open struct
       (* emit the span after setting the end timestamp *)
       let end_time = OTEL.Clock.now self.clock in
       OTEL.Proto.Trace.span_set_end_time_unix_nano span end_time;
-      OTEL.Exporter.send_trace self.exporter [ span ]
+      self.exporter.OTEL.Exporter.export (OTEL.Any_signal_l.Spans [ span ])
     | _ -> ()
 
-  let add_data_to_span _self span (data : (_ * Otrace.user_data) list) =
+  let add_data_to_span _self span (data : (_ * Trace.user_data) list) =
     match span with
     | Span_otel sp -> OTEL.Span.add_attrs sp data
     | _ -> ()
@@ -136,7 +135,7 @@ open struct
       OTEL.Log_record.make ~severity ?trace_id ?span_id ~attrs:data
         ~observed_time_unix_nano (`String msg)
     in
-    OTEL.Exporter.send_logs self.exporter [ log ]
+    self.exporter.OTEL.Exporter.export (OTEL.Any_signal_l.Logs [ log ])
 
   let metric (self : state) ~level:_ ~params:_ ~data:attrs name v : unit =
     let now = OTEL.Clock.now self.clock in
@@ -158,7 +157,8 @@ open struct
       | `sum v -> [ OTEL.Metrics.sum ~name [ v ] ]
       | `hist h -> [ OTEL.Metrics.histogram ~name [ h ] ]
     in
-    if m <> [] then OTEL.Exporter.send_metrics self.exporter m
+    if m <> [] then
+      self.exporter.OTEL.Exporter.export (OTEL.Any_signal_l.Metrics m)
 
   let extension (_self : state) ~level:_ ev =
     match ev with
@@ -176,16 +176,35 @@ open struct
 
   let shutdown self = OTEL.Exporter.shutdown self.exporter
 
-  let callbacks : state Otrace.Collector.Callbacks.t =
-    Otrace.Collector.Callbacks.make ~enter_span ~exit_span ~add_data_to_span
+  let callbacks : state Trace.Collector.Callbacks.t =
+    Trace.Collector.Callbacks.make ~enter_span ~exit_span ~add_data_to_span
       ~message ~metric ~extension ~shutdown ()
 end
+
+module Ambient_span_provider_ = struct
+  let get_current_span () =
+    match OTEL.Ambient_span.get () with
+    | None -> None
+    | Some sp -> Some (Span_otel sp)
+
+  let with_current_span_set_to () span f =
+    match span with
+    | Span_otel sp -> OTEL.Ambient_span.with_ambient sp (fun () -> f span)
+    | _ -> f span
+
+  let callbacks : unit Trace.Ambient_span_provider.Callbacks.t =
+    { get_current_span; with_current_span_set_to }
+
+  let provider = Trace.Ambient_span_provider.ASP_some ((), callbacks)
+end
+
+let ambient_span_provider = Ambient_span_provider_.provider
 
 let collector_of_exporter (exporter : OTEL.Exporter.t) : Trace_core.collector =
   let st = create_state ~exporter () in
   Trace_core.Collector.C_some (st, callbacks)
 
-let with_ambient_span (sp : Otrace.span) f =
+let with_ambient_span (sp : Trace.span) f =
   match sp with
   | Span_otel sp ->
     Ambient_context.with_key_bound_to k_span_ctx (OTEL.Span.to_span_ctx sp) f
@@ -194,43 +213,59 @@ let with_ambient_span (sp : Otrace.span) f =
 let with_ambient_span_ctx (sp : OTEL.Span_ctx.t) f =
   Ambient_context.with_key_bound_to k_span_ctx sp f
 
-let link_span_to_otel_ctx (sp1 : Otrace.span) (sp2 : OTEL.Span_ctx.t) : unit =
-  if Otrace.enabled () then Otrace.extension_event @@ Ev_link_span (sp1, sp2)
+let link_span_to_otel_ctx (sp1 : Trace.span) (sp2 : OTEL.Span_ctx.t) : unit =
+  if Trace.enabled () then Trace.extension_event @@ Ev_link_span (sp1, sp2)
 
-let link_spans (sp1 : Otrace.span) (sp2 : Otrace.span) : unit =
-  if Otrace.enabled () then (
+let link_spans (sp1 : Trace.span) (sp2 : Trace.span) : unit =
+  if Trace.enabled () then (
     match sp2 with
     | Span_otel sp2 ->
-      Otrace.extension_event @@ Ev_link_span (sp1, OTEL.Span.to_span_ctx sp2)
+      Trace.extension_event @@ Ev_link_span (sp1, OTEL.Span.to_span_ctx sp2)
     | _ -> ()
   )
 
 let[@inline] set_span_kind sp k : unit =
-  if Otrace.enabled () then Otrace.extension_event @@ Ev_set_span_kind (sp, k)
+  if Trace.enabled () then Trace.extension_event @@ Ev_set_span_kind (sp, k)
 
 let[@inline] set_span_status sp status : unit =
-  if Otrace.enabled () then
-    Otrace.extension_event @@ Ev_set_span_status (sp, status)
+  if Trace.enabled () then
+    Trace.extension_event @@ Ev_set_span_status (sp, status)
 
 let record_exception sp exn bt : unit =
-  if Otrace.enabled () then
-    Otrace.extension_event @@ Ev_record_exn { sp; exn; bt }
+  if Trace.enabled () then
+    Trace.extension_event @@ Ev_record_exn { sp; exn; bt }
 
 (** Collector that forwards to the {b currently installed} OTEL exporter. *)
-let collector_main_otel_exporter () : Otrace.collector =
-  collector_of_exporter OTEL.Main_exporter.dynamic_forward_to_main_exporter
+let collector_main_otel_exporter () : Trace.collector =
+  (* Create a dynamic exporter that forwards to the currently installed main
+     exporter at call time. *)
+  let dynamic_exp : OTEL.Exporter.t =
+    {
+      OTEL.Exporter.export =
+        (fun sig_ ->
+          match OTEL.Sdk.get () with
+          | None -> ()
+          | Some exp -> exp.OTEL.Exporter.export sig_);
+      active = (fun () -> Aswitch.dummy);
+      shutdown = ignore;
+      self_metrics = (fun () -> OTEL.Sdk.self_metrics ());
+    }
+  in
+  collector_of_exporter dynamic_exp
 
 let (collector
      [@deprecated "use collector_of_exporter or collector_main_otel_exporter"])
     =
   collector_main_otel_exporter
 
-let setup () = Otrace.setup_collector @@ collector_main_otel_exporter ()
+let setup () =
+  Trace.set_ambient_context_provider Ambient_span_provider_.provider;
+  Trace.setup_collector @@ collector_main_otel_exporter ()
 
 let setup_with_otel_exporter exp : unit =
   let coll = collector_of_exporter exp in
-  OTEL.Main_exporter.set exp;
-  Otrace.setup_collector coll
+  OTEL.Sdk.set exp;
+  Trace.setup_collector coll
 
 let setup_with_otel_backend = setup_with_otel_exporter
 
