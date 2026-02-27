@@ -22,7 +22,7 @@ let combine_l (es : OTEL.Exporter.t list) : OTEL.Exporter.t =
       shutdown = (fun () -> List.iter OTEL.Exporter.shutdown es);
       self_metrics =
         (fun () ->
-          List.concat_map (fun e -> e.OTEL.Exporter.self_metrics ()) es);
+          List.flatten @@ List.map (fun e -> e.OTEL.Exporter.self_metrics ()) es);
     }
 
 (** [combine exp1 exp2] is the exporter that emits signals to both [exp1] and
