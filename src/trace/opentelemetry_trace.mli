@@ -5,10 +5,10 @@
     that use [ocaml-trace], and they will automatically emit OpenTelemetry spans
     and logs.
 
-    Ambient_context is used to track the current ambient span.
+    [Ambient_context] is used to propagate the current span to child spans.
 
-    We use [Trace_core.extension_event] to add more features on top of the
-    common tracing interface. For example to set the "span kind":
+    [Trace_core.extension_event] is used to expose OTEL-specific features on top
+    of the common tracing interface, e.g. to set the span kind:
 
     {[
       let@ span = Trace_core.with_span ~__FILE__ ~__LINE__ "my-span" in
@@ -44,23 +44,26 @@ module Extensions : sig
 end
 
 val setup : unit -> unit
-(** Install the OTEL backend as a Trace collector *)
+(** Install the OTEL backend as a [Trace] collector. The trace collector will
+    use {!Trace_provider.get}, {!Log_provider.get}, and {!Meter_provider.get} to
+    get the current tracer, logger, meter and use that to emit signals.
+
+    This will not do much until a proper {!OTEL.Exporter.t} is installed via
+    {!OTEL.Sdk.set}. *)
 
 val setup_with_otel_exporter : OTEL.Exporter.t -> unit
-(** Same as {!setup}, but using the given exporter *)
+(** Same as {!setup}, but also calls [OTEL.Sdk.set otel_exporter] *)
 
 val setup_with_otel_backend : OTEL.Exporter.t -> unit
 [@@deprecated "use setup_with_otel_exporter"]
 
-val collector_of_exporter : OTEL.Exporter.t -> Trace_core.collector
-
-val collector : unit -> Trace_core.collector
-[@@deprecated "use collector_of_exporter, avoid global state"]
-(** Make a Trace collector that uses the main OTEL backend to send spans and
-    logs *)
+val collector : Trace_core.collector
+(** Make a Trace collector that uses the main OTEL providers to emit traces,
+    metrics, and logs *)
 
 val ambient_span_provider : Trace_core.Ambient_span_provider.t
-(** Uses {!Ambient_context} to provide contextual spans in {!Trace_core}.*)
+(** Uses {!Ambient_context} to provide contextual spans in {!Trace_core}. It is
+    automatically installed by the {!collector}. *)
 
 val link_spans : Otrace.span -> Otrace.span -> unit
 (** [link_spans sp1 sp2] modifies [sp1] by adding a span link to [sp2].
