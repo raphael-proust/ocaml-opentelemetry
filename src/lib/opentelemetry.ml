@@ -56,6 +56,8 @@ module Sdk = struct
       @since NEXT_RELEASE *)
   let get_logger ?name ?version ?attrs ?__MODULE__ () =
     Log_provider.get_logger ?name ?version ?attrs ?__MODULE__ ()
+
+  let self_debug_to_stderr = Sdk.self_debug_to_stderr
 end
 
 module Main_exporter = Sdk [@@deprecated "use Sdk instead"]
@@ -66,6 +68,8 @@ module Collector = struct
 end
 [@@deprecated "Use 'Exporter' instead"]
 
+module Provider_config = Provider_config
+module Self_debug = Self_debug
 module Dynamic_enricher = Dynamic_enricher
 module Trace_provider = Trace_provider
 module Meter_provider = Meter_provider

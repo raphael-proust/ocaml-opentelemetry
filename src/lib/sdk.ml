@@ -10,10 +10,13 @@ open struct
   let exporter : Exporter.t option Atomic.t = Atomic.make None
 end
 
+let self_debug_to_stderr = Self_debug.to_stderr
+
 (** Remove current exporter, if any.
     @param on_done called once the exporter has fully shut down (queue drained).
 *)
 let remove ~on_done () : unit =
+  Self_debug.log Info (fun () -> "opentelemetry: SDK removed");
   (* flush+close provider emitters so buffered signals reach the queue *)
   Emitter.flush_and_close (Trace_provider.get ()).emit;
   Emitter.flush_and_close (Meter_provider.get ()).emit;
@@ -51,16 +54,17 @@ let run_tick_callbacks : unit -> unit = Globals.run_tick_callbacks
     from their ticker. *)
 let tick : unit -> unit = Globals.run_tick_callbacks
 
-let set ?batch_traces ?batch_metrics ?batch_logs
-    ?(batch_timeout = Mtime.Span.(2_000 * ms)) (exp : Exporter.t) : unit =
+let set ?(traces = Provider_config.default) ?(metrics = Provider_config.default)
+    ?(logs = Provider_config.default) (exp : Exporter.t) : unit =
+  Self_debug.log Info (fun () -> "opentelemetry: SDK set up");
   Atomic.set exporter (Some exp);
   let tracer : Tracer.t =
     let t = Tracer.of_exporter exp in
     {
       t with
       emit =
-        Emitter_batch.add_batching_opt ~timeout:batch_timeout
-          ~batch_size:batch_traces t.emit;
+        Emitter_batch.add_batching_opt ~timeout:traces.Provider_config.timeout
+          ~batch_size:traces.Provider_config.batch t.emit;
     }
   in
   let meter : Meter.t =
@@ -68,8 +72,8 @@ let set ?batch_traces ?batch_metrics ?batch_logs
     {
       m with
       emit =
-        Emitter_batch.add_batching_opt ~timeout:batch_timeout
-          ~batch_size:batch_metrics m.emit;
+        Emitter_batch.add_batching_opt ~timeout:metrics.Provider_config.timeout
+          ~batch_size:metrics.Provider_config.batch m.emit;
     }
   in
   let logger : Logger.t =
@@ -77,8 +81,8 @@ let set ?batch_traces ?batch_metrics ?batch_logs
     {
       l with
       emit =
-        Emitter_batch.add_batching_opt ~timeout:batch_timeout
-          ~batch_size:batch_logs l.emit;
+        Emitter_batch.add_batching_opt ~timeout:logs.Provider_config.timeout
+          ~batch_size:logs.Provider_config.batch l.emit;
     }
   in
   Trace_provider.set tracer;

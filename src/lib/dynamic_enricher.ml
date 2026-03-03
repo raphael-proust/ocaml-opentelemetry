@@ -16,8 +16,9 @@ let collect () : Key_value.t list =
       | kvs -> acc := List.rev_append kvs !acc
       | exception exn ->
         let bt = Printexc.get_raw_backtrace () in
-        Printf.eprintf "opentelemetry: dynamic_enricher raised %s\n%s%!"
-          (Printexc.to_string exn)
-          (Printexc.raw_backtrace_to_string bt))
+        Self_debug.log Warning (fun () ->
+            Printf.sprintf "dynamic_enricher raised %s\n%s"
+              (Printexc.to_string exn)
+              (Printexc.raw_backtrace_to_string bt)))
     (Alist.get enrichers_);
   !acc
