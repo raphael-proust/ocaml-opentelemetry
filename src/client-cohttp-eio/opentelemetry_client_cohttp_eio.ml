@@ -178,10 +178,14 @@ let create_backend = create_exporter
 let setup_ ~sw ~config env : unit =
   Opentelemetry_ambient_context.set_current_storage Ambient_context_eio.storage;
   let exp = create_exporter ~config ~sw ~env () in
-  Sdk.set ?batch_traces:config.batch_traces ?batch_metrics:config.batch_metrics
-    ?batch_logs:config.batch_logs
-    ~batch_timeout:Mtime.Span.(config.batch_timeout_ms * ms)
-    exp
+  Sdk.set ~traces:config.traces ~metrics:config.metrics ~logs:config.logs exp;
+
+  Option.iter
+    (fun min_level -> Opentelemetry.Self_debug.to_stderr ~min_level ())
+    config.log_level;
+
+  Opentelemetry.Self_debug.log Opentelemetry.Self_debug.Info (fun () ->
+      "opentelemetry: cohttp-eio exporter installed")
 
 let setup ?(config = Config.make ()) ?(enable = true) ~sw env =
   if enable && not config.sdk_disabled then setup_ ~sw ~config env

@@ -89,11 +89,15 @@ let create_backend = create_exporter
 
 let setup_ ~config () : OTEL.Exporter.t =
   let exporter = create_exporter ~config () in
-  OTEL.Sdk.set ?batch_traces:config.common.batch_traces
-    ?batch_metrics:config.common.batch_metrics
-    ?batch_logs:config.common.batch_logs
-    ~batch_timeout:Mtime.Span.(config.common.batch_timeout_ms * ms)
-    exporter;
+  OTEL.Sdk.set ~traces:config.common.traces ~metrics:config.common.metrics
+    ~logs:config.common.logs exporter;
+
+  Option.iter
+    (fun min_level -> OTEL.Self_debug.to_stderr ~min_level ())
+    config.common.log_level;
+
+  OTEL.Self_debug.log OTEL.Self_debug.Info (fun () ->
+      "opentelemetry: ocurl exporter installed");
 
   OTELC.Self_trace.set_enabled config.common.self_trace;
   exporter

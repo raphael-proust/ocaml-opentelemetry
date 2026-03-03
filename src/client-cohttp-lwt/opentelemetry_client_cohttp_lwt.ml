@@ -111,10 +111,15 @@ let create_backend = create_exporter
 let setup_ ~config () : unit =
   Opentelemetry_client_lwt.Util_ambient_context.setup_ambient_context ();
   let exp = create_exporter ~config () in
-  Sdk.set ?batch_traces:config.batch_traces ?batch_metrics:config.batch_metrics
-    ?batch_logs:config.batch_logs
-    ~batch_timeout:Mtime.Span.(config.batch_timeout_ms * ms)
-    exp;
+  Sdk.set ~traces:config.traces ~metrics:config.metrics ~logs:config.logs exp;
+
+  Option.iter
+    (fun min_level -> Opentelemetry.Self_debug.to_stderr ~min_level ())
+    config.log_level;
+
+  Opentelemetry.Self_debug.log Opentelemetry.Self_debug.Info (fun () ->
+      "opentelemetry: cohttp-lwt exporter installed");
+
   ()
 
 let setup ?(config = Config.make ()) ?(enable = true) () =
