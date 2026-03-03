@@ -39,6 +39,9 @@ let get_meter ?name ?version ?(attrs : (string * [< Value.t ]) list = [])
     clock = { Clock.now = (fun () -> Clock.now (Clock.Main.get ())) };
   }
 
+(** Emit with current meter *)
+let[@inline] emit (m : Metrics.t) : unit = Emitter.emit (get ()).emit [ m ]
+
 (** A Meter.t that lazily reads the global at emit time *)
 let default_meter : Meter.t = get_meter ()
 

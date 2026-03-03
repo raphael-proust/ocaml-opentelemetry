@@ -42,6 +42,10 @@ let get_logger ?name ?version ?(attrs : (string * [< Value.t ]) list = [])
 (** A Logger.t that lazily reads the global at emit time *)
 let default_logger : Logger.t = get_logger ()
 
+(** Emit log with current logger *)
+let[@inline] emit (log : Log_record.t) : unit =
+  Emitter.emit (get ()).emit [ log ]
+
 open Log_record
 
 (** Create log record and emit it on [logger] *)

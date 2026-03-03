@@ -5,10 +5,14 @@ open struct
   let provider_ : Tracer.t Atomic.t = Atomic.make Tracer.dummy
 end
 
+(** Get current tracer. *)
 let get () : Tracer.t = Atomic.get provider_
 
+(** Set current tracer *)
 let set (t : Tracer.t) : unit = Atomic.set provider_ t
 
+(** Replace current tracer by the dummy one. All spans will be discarded from
+    now on. *)
 let clear () : unit = Atomic.set provider_ Tracer.dummy
 
 (** Get a tracer pre-configured with a fixed set of attributes added to every
@@ -44,7 +48,7 @@ let get_tracer ?name ?version ?(attrs : (string * [< Value.t ]) list = [])
 let default_tracer : Tracer.t = get_tracer ()
 
 (** Emit a span directly via the current global tracer *)
-let emit (span : Span.t) : unit = Emitter.emit default_tracer.emit [ span ]
+let[@inline] emit (span : Span.t) : unit = Emitter.emit (get ()).emit [ span ]
 
 (** Helper to implement {!with_} and similar functions *)
 let with_thunk_and_finally (self : Tracer.t) ?(force_new_trace_id = false)

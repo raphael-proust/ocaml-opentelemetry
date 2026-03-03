@@ -41,16 +41,15 @@ let[@inline] active () : Aswitch.t =
   | None -> Aswitch.dummy
   | Some exp -> Exporter.active exp
 
-let add_on_tick_callback (f : unit -> unit) : unit =
-  Globals.add_on_tick_callback f
+let add_on_tick_callback : (unit -> unit) -> unit = Globals.add_on_tick_callback
 
-let run_tick_callbacks () : unit = Globals.run_tick_callbacks ()
+let run_tick_callbacks : unit -> unit = Globals.run_tick_callbacks
 
 (** Tick all providers and run all registered callbacks. Call this periodically
     (e.g. every 500ms) to drive metrics collection, GC metrics, and batch
     timeout flushing. This is the single function client libraries should call
     from their ticker. *)
-let tick () : unit = Globals.run_tick_callbacks ()
+let tick : unit -> unit = Globals.run_tick_callbacks
 
 let set ?batch_traces ?batch_metrics ?batch_logs
     ?(batch_timeout = Mtime.Span.(2_000 * ms)) (exp : Exporter.t) : unit =
