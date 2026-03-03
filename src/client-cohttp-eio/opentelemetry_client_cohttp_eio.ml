@@ -185,7 +185,8 @@ let setup_ ~sw ~config env : unit =
     config.log_level;
 
   Opentelemetry.Self_debug.log Opentelemetry.Self_debug.Info (fun () ->
-      "opentelemetry: cohttp-eio exporter installed")
+      "opentelemetry: cohttp-eio exporter installed");
+  Opentelemetry_client.Self_trace.set_enabled config.self_trace
 
 let setup ?(config = Config.make ()) ?(enable = true) ~sw env =
   if enable && not config.sdk_disabled then setup_ ~sw ~config env

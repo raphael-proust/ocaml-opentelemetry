@@ -1,5 +1,7 @@
-(** Mini tracing module for OTEL itself (disabled if [config.self_trace=false])
-*)
+(** Mini tracing module for OTEL itself.
+
+    When enabled via {!set_enabled}, emits spans via the current
+    {!OTEL.Trace_provider}. Disabled by default. *)
 
 open Common_
 
@@ -11,12 +13,8 @@ val with_ :
   string ->
   (OTEL.Span.t -> 'a) ->
   'a
-(** A simple way to create spans to instrument parts of the OTEL SDK itself. *)
-
-val set_tracer : OTEL.Tracer.t -> unit
-(** Set the tracer to use for self-tracing. We need to make sure it will not
-    lead to infinite loops (if the tracer itself is self-tracing, it might
-    invoke itself recursively, and so on). *)
+(** Instrument a section of SDK code with a span. No-ops when disabled. *)
 
 val set_enabled : bool -> unit
-(** Enable self tracing. A tracer must also be set. *)
+(** Enable or disable self-tracing. When enabled, uses the current
+    {!OTEL.Trace_provider} to emit spans. *)
