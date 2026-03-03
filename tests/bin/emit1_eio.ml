@@ -139,9 +139,9 @@ let () =
   in
   let config =
     Opentelemetry_client_cohttp_eio.Config.make ~debug:!debug ?url:!url
-      ~batch_traces:(some_if_nzero batch_traces)
-      ~batch_metrics:(some_if_nzero batch_metrics)
-      ~batch_logs:(some_if_nzero batch_logs) ()
+      ?batch_traces:(some_if_nzero batch_traces)
+      ?batch_metrics:(some_if_nzero batch_metrics)
+      ?batch_logs:(some_if_nzero batch_logs) ()
   in
   Format.printf "@[<2>sleep outer: %.3fs,@ sleep inner: %.3fs,@ config: %a@]@."
     !sleep_outer !sleep_inner Opentelemetry_client_cohttp_eio.Config.pp config;

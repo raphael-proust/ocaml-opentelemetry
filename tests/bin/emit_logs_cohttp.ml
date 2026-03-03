@@ -95,9 +95,9 @@ let () =
   in
   let config =
     Opentelemetry_client_cohttp_lwt.Config.make ~debug:!debug ?url:!url
-      ~batch_traces:(some_if_nzero batch_traces)
-      ~batch_metrics:(some_if_nzero batch_metrics)
-      ~batch_logs:(some_if_nzero batch_logs) ()
+      ?batch_traces:(some_if_nzero batch_traces)
+      ?batch_metrics:(some_if_nzero batch_metrics)
+      ?batch_logs:(some_if_nzero batch_logs) ()
   in
   Format.printf "@[@ config: %a@]@." Opentelemetry_client_cohttp_lwt.Config.pp
     config;

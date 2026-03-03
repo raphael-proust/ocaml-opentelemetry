@@ -60,8 +60,8 @@ let () =
   in
   let config =
     Opentelemetry_client_cohttp_lwt.Config.make ~debug:!debug
-      ~batch_traces:(some_if_nzero batch_traces)
-      ~batch_metrics:(some_if_nzero batch_metrics)
+      ?batch_traces:(some_if_nzero batch_traces)
+      ?batch_metrics:(some_if_nzero batch_metrics)
       ()
   in
   Format.printf "@[<2>sleep outer: %.3fs,@ sleep inner: %.3fs,@ config: %a@]@."
