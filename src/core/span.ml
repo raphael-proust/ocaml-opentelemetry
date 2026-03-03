@@ -142,8 +142,8 @@ let add_links' (self : t) (links : unit -> Span_link.t list) : unit =
     span_set_links self links
   )
 
-let set_status = span_set_status
+let set_status self st = if is_not_dummy self then span_set_status self st
 
-let set_kind = span_set_kind
+let set_kind self k = if is_not_dummy self then span_set_kind self k
 
 let k_ambient : t Context.key = Context.new_key ()
