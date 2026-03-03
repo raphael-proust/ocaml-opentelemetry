@@ -2,12 +2,7 @@ type protocol =
   | Http_protobuf
   | Http_json
 
-type log_level =
-  | Log_level_none
-  | Log_level_error
-  | Log_level_warn
-  | Log_level_info
-  | Log_level_debug
+type log_level = Opentelemetry.Self_debug.level option
 
 type rest = unit
 
@@ -27,10 +22,9 @@ type t = {
   timeout_traces_ms: int;
   timeout_metrics_ms: int;
   timeout_logs_ms: int;
-  batch_traces: int option;
-  batch_metrics: int option;
-  batch_logs: int option;
-  batch_timeout_ms: int;
+  traces: Opentelemetry.Provider_config.t;
+  metrics: Opentelemetry.Provider_config.t;
+  logs: Opentelemetry.Provider_config.t;
   self_trace: bool;
   http_concurrency_level: int option;
   retry_max_attempts: int;
@@ -56,11 +50,13 @@ open struct
     | Http_json -> Format.fprintf out "http/json"
 
   let pp_log_level out = function
-    | Log_level_none -> Format.fprintf out "none"
-    | Log_level_error -> Format.fprintf out "error"
-    | Log_level_warn -> Format.fprintf out "warn"
-    | Log_level_info -> Format.fprintf out "info"
-    | Log_level_debug -> Format.fprintf out "debug"
+    | None -> Format.fprintf out "none"
+    | Some level ->
+      Format.fprintf out "%s" (Opentelemetry.Self_debug.string_of_level level)
+
+  let pp_provider_config out (c : Opentelemetry.Provider_config.t) =
+    Format.fprintf out "{batch=%a;@ timeout=%a}" ppiopt c.batch Mtime.Span.pp
+      c.timeout
 end
 
 let pp out (self : t) : unit =
@@ -81,10 +77,9 @@ let pp out (self : t) : unit =
     timeout_traces_ms;
     timeout_metrics_ms;
     timeout_logs_ms;
-    batch_traces;
-    batch_metrics;
-    batch_logs;
-    batch_timeout_ms;
+    traces;
+    metrics;
+    logs;
     http_concurrency_level;
     retry_max_attempts;
     retry_initial_delay_ms;
@@ -101,16 +96,15 @@ let pp out (self : t) : unit =
      %a@];@ @[<2>headers_metrics=@,\
      %a@];@ @[<2>headers_logs=@,\
      %a@];@ protocol=%a;@ timeout_ms=%d;@ timeout_traces_ms=%d;@ \
-     timeout_metrics_ms=%d;@ timeout_logs_ms=%d;@ batch_traces=%a;@ \
-     batch_metrics=%a;@ batch_logs=%a;@ batch_timeout_ms=%d;@ \
-     http_concurrency_level=%a;@ retry_max_attempts=%d;@ \
+     timeout_metrics_ms=%d;@ timeout_logs_ms=%d;@ traces=%a;@ metrics=%a;@ \
+     logs=%a;@ http_concurrency_level=%a;@ retry_max_attempts=%d;@ \
      retry_initial_delay_ms=%.0f;@ retry_max_delay_ms=%.0f;@ \
      retry_backoff_multiplier=%.1f @]}"
     debug pp_log_level log_level sdk_disabled self_trace url_traces url_metrics
     url_logs ppheaders headers ppheaders headers_traces ppheaders
     headers_metrics ppheaders headers_logs pp_protocol protocol timeout_ms
-    timeout_traces_ms timeout_metrics_ms timeout_logs_ms ppiopt batch_traces
-    ppiopt batch_metrics ppiopt batch_logs batch_timeout_ms ppiopt
+    timeout_traces_ms timeout_metrics_ms timeout_logs_ms pp_provider_config
+    traces pp_provider_config metrics pp_provider_config logs ppiopt
     http_concurrency_level retry_max_attempts retry_initial_delay_ms
     retry_max_delay_ms retry_backoff_multiplier
 
@@ -124,9 +118,13 @@ type 'k make =
   ?url_traces:string ->
   ?url_metrics:string ->
   ?url_logs:string ->
-  ?batch_traces:int option ->
-  ?batch_metrics:int option ->
-  ?batch_logs:int option ->
+  ?batch_traces:int ->
+  ?batch_metrics:int ->
+  ?batch_logs:int ->
+  ?batch_timeout_ms:int ->
+  ?traces:Opentelemetry.Provider_config.t ->
+  ?metrics:Opentelemetry.Provider_config.t ->
+  ?logs:Opentelemetry.Provider_config.t ->
   ?headers:(string * string) list ->
   ?headers_traces:(string * string) list ->
   ?headers_metrics:(string * string) list ->
@@ -136,7 +134,6 @@ type 'k make =
   ?timeout_traces_ms:int ->
   ?timeout_metrics_ms:int ->
   ?timeout_logs_ms:int ->
-  ?batch_timeout_ms:int ->
   ?self_trace:bool ->
   ?http_concurrency_level:int ->
   ?retry_max_attempts:int ->
@@ -155,22 +152,22 @@ open struct
     | Some ("1" | "true") -> true
     | _ -> false
 
-  let get_log_level_from_env () =
+  let get_log_level_from_env () : log_level =
     match Sys.getenv_opt "OTEL_LOG_LEVEL" with
-    | Some "none" -> Log_level_none
-    | Some "error" -> Log_level_error
-    | Some "warn" -> Log_level_warn
-    | Some "info" -> Log_level_info
-    | Some "debug" -> Log_level_debug
+    | Some "none" -> None
+    | Some "error" -> Some Error
+    | Some "warn" -> Some Warning
+    | Some "info" -> Some Info
+    | Some "debug" -> Some Debug
     | Some s ->
-      Printf.eprintf "warning: unknown log level %S, defaulting to info\n%!" s;
-      (* log in info level, so we at least don't miss warnings and errors  *)
-      Log_level_info
+      Opentelemetry.Self_debug.log Warning (fun () ->
+          Printf.sprintf "unknown log level %S, defaulting to info" s);
+      Some Info
     | None ->
       if get_debug_from_env () then
-        Log_level_debug
+        Some Debug
       else
-        Log_level_none
+        Some Info
 
   let get_sdk_disabled_from_env () =
     match Sys.getenv_opt "OTEL_SDK_DISABLED" with
@@ -241,16 +238,47 @@ module Env () : ENV = struct
   let make k ?(debug = get_debug_from_env ())
       ?(log_level = get_log_level_from_env ())
       ?(sdk_disabled = get_sdk_disabled_from_env ()) ?url ?url_traces
-      ?url_metrics ?url_logs ?(batch_traces = Some 400)
-      ?(batch_metrics = Some 200) ?(batch_logs = Some 400)
+      ?url_metrics ?url_logs ?batch_traces ?batch_metrics ?batch_logs
+      ?(batch_timeout_ms = 2_000) ?traces ?metrics ?logs
       ?(headers = get_general_headers_from_env ()) ?headers_traces
       ?headers_metrics ?headers_logs
       ?(protocol = get_protocol_from_env "OTEL_EXPORTER_OTLP_PROTOCOL")
       ?(timeout_ms = get_timeout_from_env "OTEL_EXPORTER_OTLP_TIMEOUT" 10_000)
       ?timeout_traces_ms ?timeout_metrics_ms ?timeout_logs_ms
-      ?(batch_timeout_ms = 2_000) ?(self_trace = false) ?http_concurrency_level
-      ?(retry_max_attempts = 3) ?(retry_initial_delay_ms = 100.)
-      ?(retry_max_delay_ms = 5000.) ?(retry_backoff_multiplier = 2.0) =
+      ?(self_trace = false) ?http_concurrency_level ?(retry_max_attempts = 3)
+      ?(retry_initial_delay_ms = 100.) ?(retry_max_delay_ms = 5000.)
+      ?(retry_backoff_multiplier = 2.0) =
+    let batch_timeout_ = Mtime.Span.(batch_timeout_ms * ms) in
+    let traces =
+      match traces with
+      | Some t -> t
+      | None ->
+        let batch =
+          match batch_traces with
+          | Some b -> b
+          | None -> get_timeout_from_env "OTEL_BSP_MAX_EXPORT_BATCH_SIZE" 400
+        in
+        Opentelemetry.Provider_config.make ~batch ~timeout:batch_timeout_ ()
+    in
+    let metrics =
+      match metrics with
+      | Some m -> m
+      | None ->
+        let batch =
+          match batch_metrics with
+          | Some b -> b
+          | None -> get_timeout_from_env "OTEL_METRIC_EXPORT_INTERVAL" 200
+        in
+        Opentelemetry.Provider_config.make ~batch ~timeout:batch_timeout_ ()
+    in
+    let logs =
+      match logs with
+      | Some l -> l
+      | None ->
+        let batch = Option.value batch_logs ~default:400 in
+        Opentelemetry.Provider_config.make ~batch ~timeout:batch_timeout_ ()
+    in
+
     let url_traces, url_metrics, url_logs =
       let base_url =
         let base_url =
@@ -343,10 +371,9 @@ module Env () : ENV = struct
         timeout_traces_ms;
         timeout_metrics_ms;
         timeout_logs_ms;
-        batch_traces;
-        batch_metrics;
-        batch_logs;
-        batch_timeout_ms;
+        traces;
+        metrics;
+        logs;
         self_trace;
         http_concurrency_level;
         retry_max_attempts;

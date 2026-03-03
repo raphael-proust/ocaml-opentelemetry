@@ -101,11 +101,11 @@ end = struct
       (* sanity check about the queue, which should be drained *)
       let size_q = Bounded_queue.Recv.size self.q in
       if size_q > 0 then
-        Printf.eprintf
-          "otel: warning: workers exited but work queue still contains %d \
-           elements\n\
-           %!"
-          size_q
+        OTEL.Self_debug.log OTEL.Self_debug.Warning (fun () ->
+            Printf.sprintf
+              "otel: warning: workers exited but work queue still contains %d \
+               elements"
+              size_q)
     )
 
   let send_signals (self : state) (sender : Sender.t) ~backoff
@@ -122,7 +122,8 @@ end = struct
       Util_net_backoff.on_success backoff;
       IO.return ()
     | Error `Sysbreak ->
-      Printf.eprintf "ctrl-c captured, stopping\n%!";
+      OTEL.Self_debug.log OTEL.Self_debug.Info (fun () ->
+          "ctrl-c captured, stopping");
       shutdown self;
       IO.return ()
     | Error err ->
@@ -135,6 +136,7 @@ end = struct
   let start_worker (self : state) : unit =
     let sender = Sender.create ~config:self.sender_config () in
     let backoff = Util_net_backoff.create () in
+    OTEL.Self_debug.log OTEL.Self_debug.Debug (fun () -> "otel worker started");
 
     (* loop on [q] *)
     let rec loop () : unit IO.t =

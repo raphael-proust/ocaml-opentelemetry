@@ -8,12 +8,9 @@ type protocol =
   | Http_protobuf
   | Http_json
 
-type log_level =
-  | Log_level_none
-  | Log_level_error
-  | Log_level_warn
-  | Log_level_info
-  | Log_level_debug
+type log_level = Opentelemetry.Self_debug.level option
+(** [None] disables internal diagnostic logging; [Some level] enables it at that
+    level and above. Maps to [OTEL_LOG_LEVEL] env var. *)
 
 type rest
 (** opaque type to force using {!make} while allowing record updates *)
@@ -60,25 +57,17 @@ type t = {
   timeout_logs_ms: int;
       (** Timeout for log exports. Read from OTEL_EXPORTER_OTLP_LOGS_TIMEOUT,
           falls back to timeout_ms. *)
-  batch_traces: int option;
-      (** Batch traces? If [Some i], then this produces batches of (at most) [i]
-          items. If [None], there is no batching.
-
-          Note that traces and metrics are batched separately. Default
-          [Some 400]. *)
-  batch_metrics: int option;
-      (** Batch metrics? If [Some i], then this produces batches of (at most)
-          [i] items. If [None], there is no batching.
-
-          Note that traces and metrics are batched separately. Default
-          [Some 200]. *)
-  batch_logs: int option;
-      (** Batch logs? See {!batch_metrics} for details. Default [Some 400] *)
-  batch_timeout_ms: int;
-      (** Number of milliseconds after which we will emit a batch, even
-          incomplete. Note that the batch might take longer than that, because
-          this is only checked when a new event occurs or when a tick is
-          emitted. Default 2_000. *)
+  traces: Opentelemetry.Provider_config.t;
+      (** Per-provider batching config for traces. Default: batch=400,
+          timeout=2s. The batch size is read from OTEL_BSP_MAX_EXPORT_BATCH_SIZE
+          if set. *)
+  metrics: Opentelemetry.Provider_config.t;
+      (** Per-provider batching config for metrics. Default: batch=200,
+          timeout=2s. The batch size is read from OTEL_METRIC_EXPORT_INTERVAL if
+          set. *)
+  logs: Opentelemetry.Provider_config.t;
+      (** Per-provider batching config for logs. Default: batch=400, timeout=2s.
+      *)
   self_trace: bool;
       (** If true, the OTEL library will perform some self-instrumentation.
           Default [false].
@@ -117,9 +106,13 @@ type 'k make =
   ?url_traces:string ->
   ?url_metrics:string ->
   ?url_logs:string ->
-  ?batch_traces:int option ->
-  ?batch_metrics:int option ->
-  ?batch_logs:int option ->
+  ?batch_traces:int ->
+  ?batch_metrics:int ->
+  ?batch_logs:int ->
+  ?batch_timeout_ms:int ->
+  ?traces:Opentelemetry.Provider_config.t ->
+  ?metrics:Opentelemetry.Provider_config.t ->
+  ?logs:Opentelemetry.Provider_config.t ->
   ?headers:(string * string) list ->
   ?headers_traces:(string * string) list ->
   ?headers_metrics:(string * string) list ->
@@ -129,7 +122,6 @@ type 'k make =
   ?timeout_traces_ms:int ->
   ?timeout_metrics_ms:int ->
   ?timeout_logs_ms:int ->
-  ?batch_timeout_ms:int ->
   ?self_trace:bool ->
   ?http_concurrency_level:int ->
   ?retry_max_attempts:int ->

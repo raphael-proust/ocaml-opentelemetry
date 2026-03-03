@@ -11,9 +11,12 @@ let str_to_hex (s : string) : string =
 
 (** Report the error on stderr. *)
 let report_err : t -> unit = function
-  | `Sysbreak -> Printf.eprintf "opentelemetry: ctrl-c captured, stopping\n%!"
+  | `Sysbreak ->
+    Opentelemetry.Self_debug.log Opentelemetry.Self_debug.Info (fun () ->
+        "opentelemetry: ctrl-c captured, stopping")
   | `Failure msg ->
-    Format.eprintf "@[<2>opentelemetry: export failed: %s@]@." msg
+    Opentelemetry.Self_debug.log Opentelemetry.Self_debug.Error (fun () ->
+        Printf.sprintf "opentelemetry: export failed: %s" msg)
   | `Status
       ( code,
         {
@@ -22,17 +25,18 @@ let report_err : t -> unit = function
           details;
           _presence = _;
         } ) ->
-    let pp_details out l =
-      List.iter
-        (fun s -> Format.fprintf out "%S;@ " (Bytes.unsafe_to_string s))
-        l
-    in
-    Format.eprintf
-      "@[<2>opentelemetry: export failed with@ http code=%d@ status \
-       {@[code=%ld;@ message=%S;@ details=[@[%a@]]@]}@]@."
-      code scode
-      (Bytes.unsafe_to_string message)
-      pp_details details
+    Opentelemetry.Self_debug.log Opentelemetry.Self_debug.Error (fun () ->
+        let pp_details out l =
+          List.iter
+            (fun s -> Format.fprintf out "%S;@ " (Bytes.unsafe_to_string s))
+            l
+        in
+        Format.asprintf
+          "@[<2>opentelemetry: export failed with@ http code=%d@ status \
+           {@[code=%ld;@ message=%S;@ details=[@[%a@]]@]}@]"
+          code scode
+          (Bytes.unsafe_to_string message)
+          pp_details details)
 
 let decode_invalid_http_response ~code ~url (body : string) : t =
   try
