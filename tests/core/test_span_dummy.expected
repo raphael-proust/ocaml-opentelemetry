@@ -1,0 +1,27 @@
+ok: add_attrs
+ok: add_attrs'
+ok: add_event
+ok: add_event'
+ok: add_links
+ok: add_links'
+ok: set_status
+ok: set_kind
+ok: record_exception
+span dummy at the end: { trace_id = <bytes len=16>;
+                         span_id = <bytes len=8>;
+                         trace_state = "" (* absent *);
+                         parent_span_id = <bytes len=0> (* absent *);
+                         flags = 0 (* absent *);
+                         name = "" (* absent *);
+                         kind = Span_kind_unspecified (* absent *);
+                         start_time_unix_nano = 0 (* absent *);
+                         end_time_unix_nano = 0 (* absent *);
+                         attributes = [];
+                         dropped_attributes_count = 0 (* absent *);
+                         events = [];
+                         dropped_events_count = 0 (* absent *);
+                         links = [];
+                         dropped_links_count = 0 (* absent *);
+                         status = None;
+                       }
+all ok
