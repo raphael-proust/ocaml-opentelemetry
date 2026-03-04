@@ -124,7 +124,8 @@ let push (self : _ t) elems : [ `Dropped | `Ok ] =
       )
     in
     (match res with
-    | `Dropped -> Atomic.incr self.n_dropped
+    | `Dropped ->
+      ignore (Atomic.fetch_and_add self.n_dropped (List.length elems) : int)
     | `Ok -> ());
     res
   )

@@ -52,12 +52,15 @@ let wrap_emitter_with_batch (self : _ Batch.t) (e : _ Emitter.t) : _ Emitter.t =
 
   let emit l =
     if l <> [] && not (Atomic.get closed_here) then (
-      (* Printf.eprintf "otel.batch.add %d items\n%!" (List.length l); *)
-      Batch.push' self l;
-
-      (* we only check for size here, not for timeout. The [tick] function is
-         enough for timeouts, whereas [emit] is in the hot path of every single
-         span/metric/log *)
+      let old_n_dropped = Batch.n_dropped self in
+      (match Batch.push self l with
+      | `Ok -> ()
+      | `Dropped ->
+        let n_dropped = Batch.n_dropped self in
+        if n_dropped / 100_000 <> old_n_dropped / 100_000 then
+          Self_debug.log Debug (fun () ->
+              Printf.sprintf "otel: batch %s dropped %d items in total"
+                signal_name n_dropped));
       maybe_emit_ self ~e ~mtime:Batch.Internal_.mtime_dummy_
     )
   in
