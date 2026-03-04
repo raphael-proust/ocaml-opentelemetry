@@ -6,9 +6,13 @@ end
 
 let get () : Logger.t = Atomic.get provider_
 
-let set (t : Logger.t) : unit = Atomic.set provider_ t
+let set (t : Logger.t) : unit =
+  Self_debug.log Info (fun () -> "otel: log provider installed");
+  Atomic.set provider_ t
 
-let clear () : unit = Atomic.set provider_ Logger.dummy
+let clear () : unit =
+  Self_debug.log Info (fun () -> "otel: log provider removed");
+  Atomic.set provider_ Logger.dummy
 
 (** Get a logger pre-configured with a fixed set of attributes added to every
     log record it emits, forwarding to the current global logger. Intended to be

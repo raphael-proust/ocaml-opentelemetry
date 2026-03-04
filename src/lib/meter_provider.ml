@@ -6,9 +6,13 @@ end
 
 let get () : Meter.t = Atomic.get provider_
 
-let set (t : Meter.t) : unit = Atomic.set provider_ t
+let set (t : Meter.t) : unit =
+  Self_debug.log Info (fun () -> "otel: meter provider installed");
+  Atomic.set provider_ t
 
-let clear () : unit = Atomic.set provider_ Meter.dummy
+let clear () : unit =
+  Self_debug.log Info (fun () -> "otel: meter provider removed");
+  Atomic.set provider_ Meter.dummy
 
 (** Get a meter pre-configured with a fixed set of attributes added to every
     metric it emits, forwarding to the current global meter. Intended to be

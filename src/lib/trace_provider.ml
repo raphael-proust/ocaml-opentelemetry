@@ -9,11 +9,15 @@ end
 let get () : Tracer.t = Atomic.get provider_
 
 (** Set current tracer *)
-let set (t : Tracer.t) : unit = Atomic.set provider_ t
+let set (t : Tracer.t) : unit =
+  Self_debug.log Info (fun () -> "otel: trace provider installed");
+  Atomic.set provider_ t
 
 (** Replace current tracer by the dummy one. All spans will be discarded from
     now on. *)
-let clear () : unit = Atomic.set provider_ Tracer.dummy
+let clear () : unit =
+  Self_debug.log Info (fun () -> "otel: trace provider removed");
+  Atomic.set provider_ Tracer.dummy
 
 (** Get a tracer pre-configured with a fixed set of attributes added to every
     span it emits, forwarding to the current global tracer. Intended to be
