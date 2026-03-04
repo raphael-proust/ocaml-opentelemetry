@@ -8,4 +8,4 @@ type t = {
 let make ?(batch : int option) ?(timeout = Mtime.Span.(2_000 * ms)) () : t =
   { batch; timeout }
 
-let default : t = make ~batch:200 ()
+let default : t = make ()

@@ -9,8 +9,8 @@ type t = {
 
 val make : ?batch:int -> ?timeout:Mtime.Span.t -> unit -> t
 (** Create a provider config.
-    @param batch batch size. Default: [Some 200].
+    @param batch batch size. [None] (the default) means no batching.
     @param timeout flush timeout. Default: [2000ms] *)
 
 val default : t
-(** Default provider config: [200] batch size, [2s] timeout. *)
+(** Default provider config: no batching, [2s] timeout. *)
