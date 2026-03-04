@@ -98,9 +98,12 @@ let push (self : _ state) x =
     | Closed ->
       ignore (Atomic.fetch_and_add self.n_discarded (List.length x) : int)
     | Pushed { num_discarded } ->
-      if num_discarded > 0 then
+      if num_discarded > 0 then (
         ignore (Atomic.fetch_and_add self.n_discarded num_discarded : int);
-
+        Opentelemetry.Self_debug.log Warning (fun () ->
+            Printf.sprintf "otel: dropped %d signals (exporter queue full)"
+              num_discarded)
+      );
       (* wake up potentially asleep consumers *)
       Cb_set.trigger self.on_non_empty
   )
