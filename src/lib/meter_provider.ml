@@ -46,6 +46,9 @@ let get_meter ?name ?version ?(attrs : (string * [< Value.t ]) list = [])
 (** Emit with current meter *)
 let[@inline] emit (m : Metrics.t) : unit = Emitter.emit (get ()).emit [ m ]
 
+(** Emit a list of metrics with current meter *)
+let[@inline] emit_l (ms : Metrics.t list) : unit = Emitter.emit (get ()).emit ms
+
 (** A Meter.t that lazily reads the global at emit time *)
 let default_meter : Meter.t = get_meter ()
 
