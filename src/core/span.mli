@@ -94,6 +94,8 @@ val add_event' : t -> (unit -> Event.t) -> unit
     it if there is an instrumentation backend. *)
 
 val record_exception : t -> exn -> Printexc.raw_backtrace -> unit
+(** Record an exception occurring inside the span. This creates a span event
+    {b and} also sets the span status to error. *)
 
 val add_links : t -> Span_link.t list -> unit
 

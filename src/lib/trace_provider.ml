@@ -94,12 +94,7 @@ let with_thunk_and_finally (self : Tracer.t) ?(force_new_trace_id = false)
     | None ->
       (match res with
       | Ok () -> ()
-      | Error (e, bt) ->
-        Span.record_exception span e bt;
-        let status =
-          make_status ~code:Status_code_error ~message:(Printexc.to_string e) ()
-        in
-        Span.set_status span status));
+      | Error (e, bt) -> Span.record_exception span e bt));
 
     Emitter.emit self.emit [ span ]
   in

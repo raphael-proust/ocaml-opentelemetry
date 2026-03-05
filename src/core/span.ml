@@ -103,17 +103,21 @@ let add_event' self ev : unit =
 let record_exception (self : t) (exn : exn) (bt : Printexc.raw_backtrace) : unit
     =
   if is_not_dummy self then (
+    let exn_msg = Printexc.to_string exn in
     let ev =
       Event.make "exception"
         ~attrs:
           [
-            "exception.message", `String (Printexc.to_string exn);
+            "exception.message", `String exn_msg;
             "exception.type", `String (Printexc.exn_slot_name exn);
             ( "exception.stacktrace",
               `String (Printexc.raw_backtrace_to_string bt) );
           ]
     in
-    add_event self ev
+    add_event self ev;
+
+    let status = make_status ~code:Status_code_error ~message:exn_msg () in
+    span_set_status self status
   )
 
 let add_attrs (self : t) (attrs : Key_value.t list) : unit =
