@@ -87,7 +87,7 @@ let with_thunk_and_finally (self : Tracer.t) ?(force_new_trace_id = false)
   (* called once we're done, to emit a span *)
   let finally res =
     let end_time = Clock.now self.clock in
-    Proto.Trace.span_set_end_time_unix_nano span end_time;
+    span_set_end_time_unix_nano span end_time;
 
     (match Span.status span with
     | Some _ -> ()
