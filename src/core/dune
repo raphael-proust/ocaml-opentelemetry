@@ -11,7 +11,7 @@
   -open
   Opentelemetry_atomic)
  (libraries
-  opentelemetry.proto
+  (re_export opentelemetry.proto)
   opentelemetry.util
   (re_export opentelemetry.atomic)
   (re_export opentelemetry.emitter)
