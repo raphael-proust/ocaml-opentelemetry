@@ -21,6 +21,9 @@ val enabled : t -> bool
 val of_exporter : Exporter.t -> t
 (** Create a meter from an exporter *)
 
+val emit : t -> Metrics.t list -> unit
+(** Emit metrics directly, bypassing the instrument registry *)
+
 val emit1 : t -> Metrics.t -> unit
 (** Emit a single metric directly, bypassing the instrument registry *)
 

@@ -10,6 +10,8 @@ let dummy : t = { emit = Emitter.dummy; clock = Clock.ptime_clock }
 
 let[@inline] enabled (self : t) = Emitter.enabled self.emit
 
+let[@inline] emit self ms : unit = Emitter.emit self.emit ms
+
 let[@inline] emit1 (self : t) (m : Metrics.t) : unit =
   Emitter.emit self.emit [ m ]
 
