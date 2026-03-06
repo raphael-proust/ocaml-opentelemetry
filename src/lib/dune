@@ -13,7 +13,9 @@
 
 (rule
  (target version.ml)
- (deps (file .git_index.lnk) gen_version.sh)
+ (deps
+  (file .git_index.lnk)
+  gen_version.sh)
  (action
   (with-stdout-to
    version.ml
