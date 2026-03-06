@@ -20,8 +20,13 @@ let service_instance_id = ref None
     @since 0.12 *)
 let service_version = ref None
 
+let sdk_name = "ocaml-otel"
+
+(** @since NEXT_RELEASE *)
+let sdk_version : string = Version.(spf "%s at %s" version git_hash)
+
 let instrumentation_library =
-  make_instrumentation_scope ~version:"%%VERSION_NUM%%" ~name:"ocaml-otel" ()
+  make_instrumentation_scope ~version:sdk_version ~name:sdk_name ()
 
 (** Global attributes, initially set via OTEL_RESOURCE_ATTRIBUTES and modifiable
     by the user code. They will be attached to each outgoing metrics/traces. *)
@@ -58,6 +63,15 @@ open struct
       ]
 
   let runtime_attributes_converted = List.map Key_value.conv runtime_attributes
+
+  let sdk_attributes =
+    [
+      (* "telemetry.sdk.language", `String "ocaml"; *)
+      "telemetry.sdk.name", `String sdk_name;
+      "telemetry.sdk.version", `String sdk_version;
+    ]
+
+  let sdk_attributes_converted = List.map Key_value.conv sdk_attributes
 end
 
 (** Attributes about the OCaml runtime. See
@@ -65,9 +79,12 @@ end
 *)
 let[@inline] get_runtime_attributes () = runtime_attributes
 
+(** Build main global attributes, to be used in resource attributes (shared by
+    all spans/metrics/logs in each outgoing batch) *)
 let mk_attributes ?(service_name = !service_name) ?(attrs = []) () : _ list =
   let l = List.rev_map Key_value.conv attrs in
   let l = List.rev_append runtime_attributes_converted l in
+  let l = List.rev_append sdk_attributes_converted l in
   let l =
     make_key_value ~key:Conventions.Attributes.Service.name
       ~value:(String_value service_name) ()
