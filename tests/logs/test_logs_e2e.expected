@@ -7,8 +7,8 @@
   scope_logs =
     [{ scope =
          Some(
-           { name = "ocaml-otel";
-             version = "%%VERSION_NUM%%";
+           { name = "opentelemetry";
+             version = "";
              attributes = [];
              dropped_attributes_count = 0 (* absent *);
            });

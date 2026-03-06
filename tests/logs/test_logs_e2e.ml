@@ -42,6 +42,11 @@ let tests (signal_batches : Client.Resource_signal.t list) =
                            lr)
                          sl.log_records
                      in
+                     Option.iter
+                       (fun sc ->
+                         Opentelemetry_proto.Common
+                         .instrumentation_scope_set_version sc "")
+                       sl.scope;
                      let sl = L.copy_scope_logs sl in
                      L.scope_logs_set_log_records sl masked_log_records;
                      sl)
