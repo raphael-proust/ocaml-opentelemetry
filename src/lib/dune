@@ -2,7 +2,8 @@
  (target version.ml)
  (deps (universe) gen_version.sh)
  (action
-  (with-stdout-to version.ml
+  (with-stdout-to
+   version.ml
    (run sh gen_version.sh))))
 
 (library
