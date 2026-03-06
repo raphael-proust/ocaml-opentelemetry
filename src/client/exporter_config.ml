@@ -26,6 +26,7 @@ type t = {
   metrics: Opentelemetry.Provider_config.t;
   logs: Opentelemetry.Provider_config.t;
   self_trace: bool;
+  self_metrics: bool;
   http_concurrency_level: int option;
   retry_max_attempts: int;
   retry_initial_delay_ms: float;
@@ -65,6 +66,7 @@ let pp out (self : t) : unit =
     log_level;
     sdk_disabled;
     self_trace;
+    self_metrics;
     url_traces;
     url_metrics;
     url_logs;
@@ -91,7 +93,8 @@ let pp out (self : t) : unit =
   in
   Format.fprintf out
     "{@[ debug=%B;@ log_level=%a;@ sdk_disabled=%B;@ self_trace=%B;@ \
-     url_traces=%S;@ url_metrics=%S;@ url_logs=%S;@ @[<2>headers=@,\
+     self_metrics=%B;@ url_traces=%S;@ url_metrics=%S;@ url_logs=%S;@ \
+     @[<2>headers=@,\
      %a@];@ @[<2>headers_traces=@,\
      %a@];@ @[<2>headers_metrics=@,\
      %a@];@ @[<2>headers_logs=@,\
@@ -100,8 +103,8 @@ let pp out (self : t) : unit =
      logs=%a;@ http_concurrency_level=%a;@ retry_max_attempts=%d;@ \
      retry_initial_delay_ms=%.0f;@ retry_max_delay_ms=%.0f;@ \
      retry_backoff_multiplier=%.1f @]}"
-    debug pp_log_level log_level sdk_disabled self_trace url_traces url_metrics
-    url_logs ppheaders headers ppheaders headers_traces ppheaders
+    debug pp_log_level log_level sdk_disabled self_trace self_metrics url_traces
+    url_metrics url_logs ppheaders headers ppheaders headers_traces ppheaders
     headers_metrics ppheaders headers_logs pp_protocol protocol timeout_ms
     timeout_traces_ms timeout_metrics_ms timeout_logs_ms pp_provider_config
     traces pp_provider_config metrics pp_provider_config logs ppiopt
@@ -135,6 +138,7 @@ type 'k make =
   ?timeout_metrics_ms:int ->
   ?timeout_logs_ms:int ->
   ?self_trace:bool ->
+  ?self_metrics:bool ->
   ?http_concurrency_level:int ->
   ?retry_max_attempts:int ->
   ?retry_initial_delay_ms:float ->
@@ -245,9 +249,9 @@ module Env () : ENV = struct
       ?(protocol = get_protocol_from_env "OTEL_EXPORTER_OTLP_PROTOCOL")
       ?(timeout_ms = get_timeout_from_env "OTEL_EXPORTER_OTLP_TIMEOUT" 10_000)
       ?timeout_traces_ms ?timeout_metrics_ms ?timeout_logs_ms
-      ?(self_trace = false) ?http_concurrency_level ?(retry_max_attempts = 3)
-      ?(retry_initial_delay_ms = 100.) ?(retry_max_delay_ms = 5000.)
-      ?(retry_backoff_multiplier = 2.0) =
+      ?(self_trace = false) ?(self_metrics = false) ?http_concurrency_level
+      ?(retry_max_attempts = 3) ?(retry_initial_delay_ms = 100.)
+      ?(retry_max_delay_ms = 5000.) ?(retry_backoff_multiplier = 2.0) =
     let batch_timeout_ = Mtime.Span.(batch_timeout_ms * ms) in
     let traces =
       match traces with
@@ -375,6 +379,7 @@ module Env () : ENV = struct
         metrics;
         logs;
         self_trace;
+        self_metrics;
         http_concurrency_level;
         retry_max_attempts;
         retry_initial_delay_ms;

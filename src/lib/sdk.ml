@@ -90,9 +90,35 @@ let set ?(traces = Provider_config.default) ?(metrics = Provider_config.default)
   Log_provider.set logger
 
 let self_metrics () : Metrics.t list =
+  let now = Clock.now_main () in
+  let emitter_metrics =
+    Emitter.self_metrics (Trace_provider.get ()).emit ~now
+    @ Emitter.self_metrics (Meter_provider.get ()).emit ~now
+    @ Emitter.self_metrics (Log_provider.get ()).emit ~now
+  in
   match get () with
-  | None -> []
-  | Some exp -> exp.Exporter.self_metrics ()
+  | None -> emitter_metrics
+  | Some exp -> exp.Exporter.self_metrics () @ emitter_metrics
+
+open struct
+  let self_metrics_enabled = Atomic.make false
+end
+
+(** Regularly emit metrics about the OTEL SDK. Idempotent. *)
+let setup_self_metrics () =
+  if not (Atomic.exchange self_metrics_enabled true) then (
+    Self_debug.log Info (fun () -> "enabling self metrics");
+    let interval_limiter =
+      Interval_limiter.create ~min_interval:Mtime.Span.(10 * s) ()
+    in
+    let on_tick () =
+      if Interval_limiter.make_attempt interval_limiter then (
+        let ms = self_metrics () in
+        Meter_provider.emit_l ms
+      )
+    in
+    Globals.add_on_tick_callback on_tick
+  )
 
 (* Permanent tick callback to drive batch timeouts on provider emitters *)
 let () =

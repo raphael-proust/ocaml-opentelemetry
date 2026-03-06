@@ -8,7 +8,7 @@ let test_config_printing () =
   in
   let expected =
     "{ debug=false; log_level=info; sdk_disabled=false; self_trace=false;\n\
-    \ url_traces=\"http://localhost:4318/v1/traces\";\n\
+    \ self_metrics=false; url_traces=\"http://localhost:4318/v1/traces\";\n\
     \ url_metrics=\"http://localhost:4318/v1/metrics\";\n\
     \ url_logs=\"http://localhost:4318/v1/logs\"; headers=[]; headers_traces=[];\n\
     \ headers_metrics=[]; headers_logs=[]; protocol=http/protobuf;\n\

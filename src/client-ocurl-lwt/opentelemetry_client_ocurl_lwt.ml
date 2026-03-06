@@ -95,6 +95,7 @@ let setup_ ~config () : Exporter.t =
   Opentelemetry.Self_debug.log Opentelemetry.Self_debug.Info (fun () ->
       "opentelemetry: ocurl-lwt exporter installed");
   Opentelemetry_client.Self_trace.set_enabled config.self_trace;
+  if config.self_metrics then Opentelemetry.Sdk.setup_self_metrics ();
 
   exp
 

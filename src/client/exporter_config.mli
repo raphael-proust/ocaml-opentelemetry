@@ -72,6 +72,10 @@ type t = {
       (** If true, the OTEL library will perform some self-instrumentation.
           Default [false].
           @since 0.7 *)
+  self_metrics: bool;
+      (** If true, the OTEL library will regularly emit metrics about itself.
+          Default [false].
+          @since NEXT_RELEASE *)
   http_concurrency_level: int option;
       (** How many HTTP requests can be done simultaneously (at most)? This can
           be used to represent the size of a pool of workers where each worker
@@ -123,6 +127,7 @@ type 'k make =
   ?timeout_metrics_ms:int ->
   ?timeout_logs_ms:int ->
   ?self_trace:bool ->
+  ?self_metrics:bool ->
   ?http_concurrency_level:int ->
   ?retry_max_attempts:int ->
   ?retry_initial_delay_ms:float ->

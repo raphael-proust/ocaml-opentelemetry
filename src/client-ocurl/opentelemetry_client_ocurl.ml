@@ -100,6 +100,7 @@ let setup_ ~config () : OTEL.Exporter.t =
       "opentelemetry: ocurl exporter installed");
 
   OTELC.Self_trace.set_enabled config.common.self_trace;
+  if config.common.self_metrics then Opentelemetry.Sdk.setup_self_metrics ();
   exporter
 
 let remove_exporter () : unit =
