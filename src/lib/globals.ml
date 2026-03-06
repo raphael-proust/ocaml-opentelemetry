@@ -20,13 +20,11 @@ let service_instance_id = ref None
     @since 0.12 *)
 let service_version = ref None
 
-let sdk_name = "ocaml-otel"
-
 (** @since NEXT_RELEASE *)
 let sdk_version : string = Version.(spf "%s at %s" version git_hash)
 
 let instrumentation_library =
-  make_instrumentation_scope ~version:sdk_version ~name:sdk_name ()
+  make_instrumentation_scope ~version:sdk_version ~name:"opentelemetry" ()
 
 (** Global attributes, initially set via OTEL_RESOURCE_ATTRIBUTES and modifiable
     by the user code. They will be attached to each outgoing metrics/traces. *)
@@ -66,8 +64,8 @@ open struct
 
   let sdk_attributes =
     [
-      (* "telemetry.sdk.language", `String "ocaml"; *)
-      "telemetry.sdk.name", `String sdk_name;
+      "telemetry.sdk.language", `String "ocaml";
+      "telemetry.sdk.name", `String "opentelemetry";
       "telemetry.sdk.version", `String sdk_version;
     ]
 
