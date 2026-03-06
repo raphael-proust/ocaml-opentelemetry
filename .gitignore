@@ -7,3 +7,6 @@ _opam
 *.install
 *.exe
 *.tmp
+src/lib/version.ml
+src/lib/.git_index_path
+src/lib/.git_index.lnk
