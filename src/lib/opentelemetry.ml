@@ -100,6 +100,7 @@ type key_value = Key_value.t
 (** {2 Global settings} *)
 
 module Globals = Globals
+module Version = Version
 
 (** {2 Traces and Spans} *)
 
