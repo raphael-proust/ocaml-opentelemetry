@@ -15,11 +15,14 @@ module type HTTPC = sig
 
   val send :
     t ->
+    attempt_descr:string ->
     url:string ->
     headers:(string * string) list ->
     decode:[ `Dec of Pbrt.Decoder.t -> 'a | `Ret of 'a ] ->
     string ->
     ('a, error) result IO.t
+  (** Send a HTTP request.
+      @param attempt_descr included in error message if this fails *)
 end
 
 module Make
@@ -61,15 +64,19 @@ end = struct
     (** Should we retry, based on the HTTP response code? *)
     let should_retry = function
       | `Failure _ -> true (* Network errors, connection issues *)
-      | `Status (code, _) ->
+      | `Status (code, _, _) ->
         (* Retry on server errors, rate limits, timeouts *)
         code >= 500 || code = 429 || code = 408
       | `Sysbreak -> false (* User interrupt, don't retry *)
 
     (** Retry loop over [f()] with exponential backoff *)
-    let rec retry_loop_ (self : t) attempt delay_ms ~f =
+    let rec retry_loop_ (self : t) attempt delay_ms
+        ~(f : attempt_descr:string -> unit -> _ result IO.t) : _ result IO.t =
       let open IO in
-      let* result = f () in
+      let attempt_descr =
+        spf "try(%d/%d)" attempt self.config.retry_max_attempts
+      in
+      let* result = f ~attempt_descr () in
       match result with
       | Ok x -> return (Ok x)
       | Error err
@@ -114,14 +121,14 @@ end = struct
           ~protocol:self.config.protocol res
       in
 
-      let do_once () =
-        Httpc.send self.http ~url ~headers ~decode:(`Ret ()) data
+      let do_once ~attempt_descr () =
+        Httpc.send self.http ~attempt_descr ~url ~headers ~decode:(`Ret ()) data
       in
 
       if self.config.retry_max_attempts > 0 then
         retry_loop_ self 0 self.config.retry_initial_delay_ms ~f:do_once
       else
-        do_once ()
+        do_once ~attempt_descr:"single_attempt" ()
   end
 
   module C = Generic_consumer.Make (IO) (Notifier) (Sender)

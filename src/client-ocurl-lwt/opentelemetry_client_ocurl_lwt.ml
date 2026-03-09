@@ -26,8 +26,8 @@ module Httpc : Generic_http_consumer.HTTPC with module IO = IO = struct
   let cleanup self = Ezcurl_lwt.delete self
 
   (** send the content to the remote endpoint/path *)
-  let send (self : t) ~url ~headers:user_headers ~decode (bod : string) :
-      ('a, error) result Lwt.t =
+  let send (self : t) ~attempt_descr ~url ~headers:user_headers ~decode
+      (bod : string) : ('a, error) result Lwt.t =
     let* r =
       let headers = user_headers in
       Ezcurl_lwt.post ~client:self ~headers ~params:[] ~url
@@ -61,7 +61,9 @@ module Httpc : Generic_http_consumer.HTTPC with module IO = IO = struct
         in
         Lwt.return r)
     | Ok { code; body; _ } ->
-      let err = Export_error.decode_invalid_http_response ~url ~code body in
+      let err =
+        Export_error.decode_invalid_http_response ~attempt_descr ~url ~code body
+      in
       Lwt.return (Error err)
 end
 

@@ -89,8 +89,8 @@ struct
     let cleanup = ignore
 
     (* send the content to the remote endpoint/path *)
-    let send (client : t) ~url ~headers:user_headers ~decode (body : string) :
-        ('a, Export_error.t) result =
+    let send (client : t) ~attempt_descr ~url ~headers:user_headers ~decode
+        (body : string) : ('a, Export_error.t) result =
       Eio.Switch.run @@ fun sw ->
       let uri = Uri.of_string url in
 
@@ -138,7 +138,7 @@ struct
           let r =
             try
               let status = Status.decode_pb_status dec in
-              Error (`Status (code, status))
+              Error (`Status (code, status, attempt_descr))
             with e ->
               let bt = Printexc.get_backtrace () in
               Error

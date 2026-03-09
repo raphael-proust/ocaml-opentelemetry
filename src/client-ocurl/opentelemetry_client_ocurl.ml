@@ -24,8 +24,8 @@ module Httpc : OTELC.Generic_http_consumer.HTTPC with module IO = IO = struct
 
   let cleanup = Ezcurl.delete
 
-  let send (self : t) ~url ~headers:user_headers ~decode (bod : string) :
-      ('a, error) result =
+  let send (self : t) ~attempt_descr ~url ~headers:user_headers ~decode
+      (bod : string) : ('a, error) result =
     let r =
       let headers = user_headers in
       Ezcurl.post ~client:self ~headers ~params:[] ~url ~content:(`String bod)
@@ -57,7 +57,8 @@ module Httpc : OTELC.Generic_http_consumer.HTTPC with module IO = IO = struct
                 (spf "decoding failed with:\n%s\n%s" (Printexc.to_string e) bt))))
     | Ok { code; body; _ } ->
       let err =
-        OTELC.Export_error.decode_invalid_http_response ~url ~code body
+        OTELC.Export_error.decode_invalid_http_response ~attempt_descr ~url
+          ~code body
       in
       Error err
 end

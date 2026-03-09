@@ -27,8 +27,8 @@ module Httpc : Generic_http_consumer.HTTPC with module IO = IO = struct
   let cleanup _self = ()
 
   (* send the content to the remote endpoint/path *)
-  let send (_self : t) ~url ~headers:user_headers ~decode (bod : string) :
-      ('a, error) result Lwt.t =
+  let send (_self : t) ~attempt_descr ~url ~headers:user_headers ~decode
+      (bod : string) : ('a, error) result Lwt.t =
     let uri = Uri.of_string url in
 
     let open Cohttp in
@@ -74,7 +74,7 @@ module Httpc : Generic_http_consumer.HTTPC with module IO = IO = struct
         let r =
           try
             let status = Status.decode_pb_status dec in
-            Error (`Status (code, status))
+            Error (`Status (code, status, attempt_descr))
           with e ->
             let bt = Printexc.get_backtrace () in
             Error

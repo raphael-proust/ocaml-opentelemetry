@@ -1,7 +1,9 @@
 (** Error that can occur during export *)
 
+type attempt_descr = string
+
 type t =
-  [ `Status of int * Opentelemetry.Proto.Status.status
+  [ `Status of int * Opentelemetry.Proto.Status.status * attempt_descr
   | `Failure of string
   | `Sysbreak
   ]
@@ -24,25 +26,27 @@ let report_err : t -> unit = function
           message;
           details;
           _presence = _;
-        } ) ->
+        },
+        descr ) ->
     Opentelemetry.Self_debug.log Opentelemetry.Self_debug.Error (fun () ->
         let pp_details out l =
           List.iter
             (fun s -> Format.fprintf out "%S;@ " (Bytes.unsafe_to_string s))
             l
         in
+
         Format.asprintf
-          "@[<2>opentelemetry: export failed with@ http code=%d@ status \
-           {@[code=%ld;@ message=%S;@ details=[@[%a@]]@]}@]"
-          code scode
+          "@[<2>opentelemetry: export failed with@ http code=%d@ attempt: %s@ \
+           status {@[code=%ld;@ message=%S;@ details=[@[%a@]]@]}@]"
+          code descr scode
           (Bytes.unsafe_to_string message)
           pp_details details)
 
-let decode_invalid_http_response ~code ~url (body : string) : t =
+let decode_invalid_http_response ~attempt_descr ~code ~url (body : string) : t =
   try
     let dec = Pbrt.Decoder.of_string body in
     let status = Opentelemetry.Proto.Status.decode_pb_status dec in
-    `Status (code, status)
+    `Status (code, status, attempt_descr)
   with e ->
     let bt = Printexc.get_backtrace () in
     `Failure
