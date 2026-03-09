@@ -128,7 +128,7 @@ end = struct
       IO.return ()
     | Error err ->
       Atomic.incr n_errors;
-      Export_error.report_err err;
+      Export_error.report_err ~level:`Auto err;
       (* avoid crazy error loop *)
       let dur_s = Util_net_backoff.on_error backoff in
       IO.sleep_s (dur_s +. Random.float (dur_s /. 10.))

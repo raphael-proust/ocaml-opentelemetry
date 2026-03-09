@@ -12,12 +12,18 @@ let str_to_hex (s : string) : string =
   Opentelemetry_util.Util_bytes_.bytes_to_hex (Bytes.unsafe_of_string s)
 
 (** Report the error on stderr. *)
-let report_err : t -> unit = function
+let report_err ~level:(provided_level : [ `Debug | `Auto ]) (err : t) : unit =
+  let compute_level lvl =
+    match provided_level with
+    | `Debug -> Opentelemetry.Self_debug.Debug
+    | `Auto -> lvl
+  in
+  match err with
   | `Sysbreak ->
-    Opentelemetry.Self_debug.log Opentelemetry.Self_debug.Info (fun () ->
+    Opentelemetry.Self_debug.log (compute_level Info) (fun () ->
         "opentelemetry: ctrl-c captured, stopping")
   | `Failure msg ->
-    Opentelemetry.Self_debug.log Opentelemetry.Self_debug.Error (fun () ->
+    Opentelemetry.Self_debug.log (compute_level Error) (fun () ->
         Printf.sprintf "opentelemetry: export failed: %s" msg)
   | `Status
       ( code,
@@ -28,7 +34,7 @@ let report_err : t -> unit = function
           _presence = _;
         },
         descr ) ->
-    Opentelemetry.Self_debug.log Opentelemetry.Self_debug.Error (fun () ->
+    Opentelemetry.Self_debug.log (compute_level Error) (fun () ->
         let pp_details out l =
           List.iter
             (fun s -> Format.fprintf out "%S;@ " (Bytes.unsafe_to_string s))
