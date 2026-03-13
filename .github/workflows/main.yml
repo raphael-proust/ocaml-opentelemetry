@@ -61,7 +61,9 @@ jobs:
       - run: opam exec -- dune build @install -p opentelemetry
 
       - run: opam install lwt.6.1.1 -y
+        if: ${{ startsWith(matrix.ocaml-compiler, '5') }}
       - run: opam exec -- dune build @install -p opentelemetry,opentelemetry-client,opentelemetry-lwt,opentelemetry-client-cohttp-lwt
+        if: ${{ startsWith(matrix.ocaml-compiler, '5') }}
 
       - run: opam install ocaml-protoc
       - run: opam exec -- dune build @lint
