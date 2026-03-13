@@ -31,6 +31,7 @@ depends: [
 depopts: ["atomic" "trace" "thread-local-storage" "lwt" "eio" "picos"]
 conflicts: [
   "trace" {< "0.12"}
+  "lwt" {< "6"}
 ]
 build: [
   ["dune" "subst"] {dev}

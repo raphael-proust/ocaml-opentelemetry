@@ -20,8 +20,8 @@ depends: [
   "odoc" {with-doc}
   "ezcurl-lwt" {>= "0.2.3"}
   "ocurl"
-  "lwt" {>= "5.3"}
-  "lwt_ppx" {>= "2.0"}
+  "lwt" {>= "6"}
+  "lwt_ppx" {>= "6"}
   "alcotest" {with-test}
 ]
 build: [
