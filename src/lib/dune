@@ -21,7 +21,7 @@
   (re_export opentelemetry.ambient-context)
   (re_export opentelemetry.atomic)
   (re_export hmap)
-  dune-build-info
+  (re_export dune-build-info)
   mtime
   mtime.clock.os
   pbrt
