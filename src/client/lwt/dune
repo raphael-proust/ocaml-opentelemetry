@@ -28,12 +28,16 @@
 
 (rule
  (enabled_if
-  (>= %{version:lwt} 6.0))
+  (and
+   %{lib-available:lwt}
+   (>= %{version:lwt} 6.0)))
  (action
   (copy types_.ml.6 types_.ml)))
 
 (rule
  (enabled_if
-  (< %{version:lwt} 6.0))
+  (and
+   %{lib-available:lwt}
+   (< %{version:lwt} 6.0)))
  (action
   (copy types_.ml.5 types_.ml)))
