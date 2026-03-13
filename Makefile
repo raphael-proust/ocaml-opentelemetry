@@ -29,6 +29,9 @@ format:
 format-check:
 	@dune build $(DUNE_OPTS) @fmt --display=quiet
 
+setup-githooks:
+	uvx pre-commit install --hook-type pre-push
+
 WATCH ?= @all
 watch:
 	@dune build $(WATCH) -w $(OPTS)

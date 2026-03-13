@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ocamlformat
+        name: ocamlformat check
+        entry: make format-check
+        language: system
+        files: \.(ml|mli)$
+        pass_filenames: false
+        stages: [pre-push]
