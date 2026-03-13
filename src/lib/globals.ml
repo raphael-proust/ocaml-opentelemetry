@@ -21,7 +21,7 @@ let service_instance_id = ref None
 let service_version = ref None
 
 (** @since NEXT_RELEASE *)
-let sdk_version : string = Version.(spf "%s at %s" version git_hash)
+let sdk_version : string = Version.version
 
 let instrumentation_library =
   make_instrumentation_scope ~version:sdk_version ~name:"opentelemetry" ()

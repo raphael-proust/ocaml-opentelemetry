@@ -26,6 +26,7 @@ depends: [
   "ocaml-lsp-server" {with-dev-setup}
   "ocamlformat" {with-dev-setup & >= "0.27" & < "0.28"}
   "mtime" {>= "1.4"}
+  "dune-build-info"
 ]
 depopts: ["atomic" "trace" "thread-local-storage" "lwt" "eio" "picos"]
 conflicts: [

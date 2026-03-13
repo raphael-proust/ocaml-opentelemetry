@@ -49,7 +49,8 @@
     (>= 0.27)
     (< 0.28)))
   (mtime
-   (>= "1.4")))
+   (>= "1.4"))
+  dune-build-info)
  (depopts atomic trace thread-local-storage lwt eio picos)
  (conflicts
   (trace

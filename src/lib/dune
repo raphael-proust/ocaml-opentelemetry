@@ -1,26 +1,3 @@
-(rule
- (target .git_index_path)
- (deps (universe) gen_git_index_path.sh)
- (action
-  (with-stdout-to
-   .git_index_path
-   (run sh gen_git_index_path.sh))))
-
-(rule
- (target .git_index.lnk)
- (action
-  (run ln -sf %{read-lines:.git_index_path} %{target})))
-
-(rule
- (target version.ml)
- (deps
-  (file .git_index.lnk)
-  gen_version.sh)
- (action
-  (with-stdout-to
-   version.ml
-   (run sh gen_version.sh))))
-
 (library
  (name opentelemetry)
  (public_name opentelemetry)
@@ -44,6 +21,7 @@
   (re_export opentelemetry.ambient-context)
   (re_export opentelemetry.atomic)
   (re_export hmap)
+  dune-build-info
   mtime
   mtime.clock.os
   pbrt
