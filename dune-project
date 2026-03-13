@@ -54,8 +54,7 @@
  (depopts atomic trace thread-local-storage lwt eio picos)
  (conflicts
   (trace
-   (< 0.12))
-  (lwt (< 6)))
+   (< 0.12)))
  (tags
   (instrumentation tracing opentelemetry datadog jaeger)))
 
@@ -86,9 +85,9 @@
   (cohttp-lwt-unix :with-test)
   (odoc :with-doc)
   (lwt
-   (>= "6"))
+   (>= "5.3"))
   (lwt_ppx
-   (>= "6"))
+   (>= "2.0"))
   (alcotest :with-test))
  (tags
   (instrumentation tracing opentelemetry datadog lwt)))
@@ -129,9 +128,9 @@
    (>= 0.2.3))
   ocurl
   (lwt
-   (>= "6"))
+   (>= "5.3"))
   (lwt_ppx
-   (>= "6"))
+   (>= "2.0"))
   (alcotest :with-test))
  (synopsis "Collector client for opentelemetry, using ezcurl-lwt"))
 
@@ -170,7 +169,7 @@
   ambient-context-lwt
   (odoc :with-doc)
   (lwt
-   (>= "6"))
+   (>= "5.3"))
   (cohttp
    (>= "6.0.0"))
   (cohttp-lwt
@@ -195,9 +194,9 @@
   ambient-context-lwt
   (odoc :with-doc)
   (lwt
-   (>= "6"))
+   (>= "5.3"))
   (lwt_ppx
-   (>= "6"))
+   (>= "2.0"))
   cohttp-lwt
   cohttp-lwt-unix
   (alcotest :with-test)
